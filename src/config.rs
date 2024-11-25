@@ -19,8 +19,7 @@ pub struct GameConfig {
     pub tiles_path: String,
     pub tile_size: f32,
     pub border_img: String,
-    pub preview1_img: String,
-    pub preview2_img: String,
+    pub preview_img: String,
 
 }
 
@@ -51,8 +50,7 @@ pub fn loadConfig(path: String) -> ConfigData {
             tiles_path: map["game"]["tiles_path"].clone().unwrap(),
             tile_size: map["game"]["tile_size"].clone().unwrap().parse().unwrap(),
             border_img: map["game"]["border_img"].clone().unwrap(),
-            preview1_img: map["game"]["preview1_img"].clone().unwrap(),
-            preview2_img: map["game"]["preview2_img"].clone().unwrap(),
+            preview_img: map["game"]["preview_img"].clone().unwrap(),
         }
     }
 }

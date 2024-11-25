@@ -1,10 +1,14 @@
 mod tetromino;
 mod config;
 mod scene;
-use bevy::{prelude::*, render::{settings::{Backends, RenderCreation, WgpuSettings}, RenderPlugin}};
+use std::ops::Deref;
+
+use bevy::{ecs::entity, prelude::*, render::{settings::{Backends, RenderCreation, WgpuSettings}, RenderPlugin}};
 use bevy_ecs_tilemap::prelude::*;
 use config::ConfigData;
 use rand::{thread_rng, Rng};
+use scene::GameState;
+use tetromino::*;
 
 #[macro_use]
 extern crate ini;
@@ -24,30 +28,100 @@ fn main() {
                 ..default()
             }),
             ..default()
-        }))
+        }));
     }
+    app.insert_resource(EntityContainer {..default()});
     app.insert_resource(config::loadConfig("config.ini".to_string()));
+    app.insert_resource(scene::init_game_state());
     app.add_plugins(TilemapPlugin);
     app.add_systems(Startup, startup);
     // app.add_systems(Update, remove_tiles);
     app.run();
 }
 
+#[derive(Component)]
+struct Name(String);
+
+#[derive(Resource, Default)]
+struct EntityContainer {
+    tilemap: Option<Entity>,
+    preview1: Option<Entity>,
+    preview2: Option<Entity>
+}
+
+fn spawn_tetromino(
+    mut commands: Commands,
+    state: &scene::GameState,
+    entity_container: &Res<EntityContainer>,
+    tile_storage: &mut TileStorage
+) {
+
+    //主游戏区域放置方块
+    for positon in state.current_tetromino.0.positions[state.rotate as usize].iter() {
+        let tile_pos = TilePos { x: positon.x + state.current_position.x, y: positon.y + state.current_position.y };
+        let tile_entity = commands
+            .spawn(TileBundle {
+                position: tile_pos,
+                tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
+                texture_index: TileTextureIndex(state.current_tetromino.1),
+                ..Default::default()
+            })
+            .id();
+        tile_storage.set(&tile_pos, tile_entity);
+    }
+    //预览区域放置方块
+    let preview1 = entity_container.preview1.unwrap();
+    
+}
+
+fn update(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut state: ResMut<scene::GameState>,
+    entity_container: Res<EntityContainer>,
+    mut query: Query<(&mut scene::LastUpdate, &mut TileStorage)>
+) {
+
+    let mut last_update = query.single_mut().0;
+    let mut tile_storage = query.single_mut().1;
+    let tetromino = Tetromino::new(TetrominoType::I); 
+    
+
+    //spawn tetromino
+    if !state.started {
+        spawn_tetromino(commands, state.deref(), &entity_container, &tetromino, &mut tile_storage);
+        state.started = true;
+    }
+
+    
+}
 
 
-
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>, config: Res<ConfigData>) {
+fn startup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    config: Res<ConfigData>,
+    mut entity_container: ResMut<EntityContainer>
+) {
     //相机
     commands.spawn(scene::camera());
     //游戏区域tile_map
-    let tilemap_entity = commands.spawn_empty().id();
+    let tilemap_entity= commands.spawn_empty().insert(Name("tilemap".to_string())).id();
     let preview1_entity= commands.spawn_empty().id();
     let preview2_entity: Entity= commands.spawn_empty().id();
     commands.entity(tilemap_entity).insert(scene::main_tilemap(&asset_server, &config));
     //游戏区域边框
-    commands.entity(tilemap_entity).insert(scene::main_border(&asset_server, &config));
+    commands.entity(tilemap_entity).insert(scene::main_board(&asset_server, &config));
     //方块预览区1边框
-    commands.entity(preview1_entity).insert()
+    commands.entity(preview1_entity).insert(scene::preview_board(&asset_server, &config, 0));
+    commands.entity(preview2_entity).insert(scene::preview_board(&asset_server, &config, 1));
+    entity_container.tilemap = Some(tilemap_entity);
+    entity_container.preview1 = Some(preview1_entity);
+    entity_container.preview2 = Some(preview2_entity);
+
+    //生成三个方块， 一个放在游戏区域，一个放在预览区1，一个放在预览区2
+    
+    // commands.entity(preview1_entity).insert()
 
 
     // let mut random = thread_rng();

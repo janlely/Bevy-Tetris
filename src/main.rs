@@ -53,6 +53,7 @@ fn spawn_tetromino(
     mut commands: Commands,
     state: &scene::GameState,
     entity_container: &Res<EntityContainer>,
+    tetrominos: &Res<Tetrominos>,
     tile_storage: &mut TileStorage
 ) {
 
@@ -72,6 +73,7 @@ fn spawn_tetromino(
     //预览区域放置方块
     let preview1 = entity_container.preview1.unwrap();
     
+    
 }
 
 fn update(
@@ -79,23 +81,26 @@ fn update(
     time: Res<Time>,
     mut state: ResMut<scene::GameState>,
     entity_container: Res<EntityContainer>,
+    tetrominos: Res<Tetrominos>,
     mut query: Query<(&mut scene::LastUpdate, &mut TileStorage)>
 ) {
 
     let mut last_update = query.single_mut().0;
     let mut tile_storage = query.single_mut().1;
-    let tetromino = Tetromino::new(TetrominoType::I); 
+    // let tetromino = Tetromino::new(TetrominoType::I); 
     
 
     //spawn tetromino
     if !state.started {
-        spawn_tetromino(commands, state.deref(), &entity_container, &tetromino, &mut tile_storage);
+        spawn_tetromino(commands, state.deref(), &entity_container, &tetrominos, &mut tile_storage);
         state.started = true;
     }
 
     
 }
 
+#[derive(Resource)]
+struct Tetrominos([SpriteBundle; 7]);
 
 fn startup(
     mut commands: Commands,
@@ -103,6 +108,18 @@ fn startup(
     config: Res<ConfigData>,
     mut entity_container: ResMut<EntityContainer>
 ) {
+
+    let tetrominos = Tetrominos([
+        scene::make_sprite(&asset_server, TetrominoType::I),
+        scene::make_sprite(&asset_server, TetrominoType::J),
+        scene::make_sprite(&asset_server, TetrominoType::L),
+        scene::make_sprite(&asset_server, TetrominoType::O),
+        scene::make_sprite(&asset_server, TetrominoType::S),
+        scene::make_sprite(&asset_server, TetrominoType::T),
+        scene::make_sprite(&asset_server, TetrominoType::Z),
+    ]);
+
+    commands.insert_resource(tetrominos);
     //相机
     commands.spawn(scene::camera());
     //游戏区域tile_map

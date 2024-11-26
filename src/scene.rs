@@ -11,7 +11,7 @@ pub struct LastUpdate {
 }
 
 #[derive(Resource)]
-pub struct GameState<T: Bundle> {
+pub struct GameState {
     pub alive: bool,
     pub paused: bool,
     pub started: bool,
@@ -20,7 +20,6 @@ pub struct GameState<T: Bundle> {
     pub next_tetromino2: (Tetromino, u32),
     pub rotate: u32,
     pub current_position: UVec2,
-    pub tetrominos: [T; 7],
 }
 
 fn get_rand_tetromino() -> (Tetromino, u32) {
@@ -38,16 +37,78 @@ fn get_rand_tetromino() -> (Tetromino, u32) {
     }
 }
 
-fn make_sprite(texture_handle: &Handle<Image>, tetromino_type: TetrominoType) -> {
+
+pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> SpriteBundle {
     match tetromino_type {
         TetrominoType::I => {
-            let mut atlas_builder = TextureAtlasBuilder::new(texture_handle, Vec2::new(32.0, 32.0));
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("I.png"),
+                ..default()
+            }
         },
+        TetrominoType::J => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("J.png"),
+                ..default()
+            }
+        },
+        TetrominoType::L => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("L.png"),
+                ..default()
+            }
+        },
+        TetrominoType::O => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("O.png"),
+                ..default()
+            }
+        },
+        TetrominoType::S => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("S.png"),
+                ..default()
+            }
+        },
+        TetrominoType::T => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("T.png"),
+                ..default()
+            }
+        },
+        TetrominoType::Z => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Z.png"),
+                ..default()
+            }
+        },
+        // _ => panic!("Invalid tetromino type!")
+
     }
 } 
 
-pub fn init_game_state(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> GameState<SpriteBundle> {
-    let texture_handle: Handle<Image> = asset_server.load(config.gameConfig.tiles_path.clone());
+pub fn init_game_state() -> GameState {
     GameState {
         alive: true,
         paused: false,
@@ -57,15 +118,6 @@ pub fn init_game_state(asset_server: &Res<AssetServer>, config: &Res<ConfigData>
         next_tetromino2: get_rand_tetromino(),
         rotate: 0,
         current_position: UVec2::new(0, 9),
-        tetrominos: [
-            make_sprite(texture_handle, TetrominoType::I),
-            make_sprite(texture_handle, TetrominoType::J),
-            make_sprite(texture_handle, TetrominoType::L),
-            make_sprite(texture_handle, TetrominoType::O),
-            make_sprite(texture_handle, TetrominoType::S),
-            make_sprite(texture_handle, TetrominoType::T),
-            make_sprite(texture_handle, TetrominoType::Z),
-        ]
     }
 }
 

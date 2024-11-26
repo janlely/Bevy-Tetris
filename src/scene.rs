@@ -15,24 +15,25 @@ pub struct GameState {
     pub alive: bool,
     pub paused: bool,
     pub started: bool,
-    pub current_tetromino: (Tetromino, u32),
-    pub next_tetromino: (Tetromino, u32),
-    pub next_tetromino2: (Tetromino, u32),
-    pub rotate: u32,
-    pub current_position: UVec2,
+    pub current_tetromino: (Tetromino, usize),
+    pub next_tetromino: usize,
+    pub next_tetromino2: usize,
+    pub current_position: IVec2,
+    pub step_timer: f64,
+    pub move_timer: f64,
 }
 
-fn get_rand_tetromino() -> (Tetromino, u32) {
+fn get_rand_tetromino() -> (Tetromino, usize) {
     let mut random = thread_rng();
     let num = random.gen_range(0..7);
     match num {
-        0 => (Tetromino::new(TetrominoType::I), 0),
-        1 => (Tetromino::new(TetrominoType::J), 1),
-        2 => (Tetromino::new(TetrominoType::L), 2),
-        3 => (Tetromino::new(TetrominoType::O), 3),
-        4 => (Tetromino::new(TetrominoType::S), 4),
-        5 => (Tetromino::new(TetrominoType::T), 5),
-        6 => (Tetromino::new(TetrominoType::Z), 6),
+        0 => (Tetromino::new(TetrominoType::I, 0), 0),
+        1 => (Tetromino::new(TetrominoType::J, 1), 1),
+        2 => (Tetromino::new(TetrominoType::L, 2), 2),
+        3 => (Tetromino::new(TetrominoType::O, 3), 3),
+        4 => (Tetromino::new(TetrominoType::S, 4), 4),
+        5 => (Tetromino::new(TetrominoType::T, 4), 5),
+        6 => (Tetromino::new(TetrominoType::Z, 6), 6),
         _ => panic!("Invalid random number!")
     }
 }
@@ -109,15 +110,17 @@ pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoTyp
 } 
 
 pub fn init_game_state() -> GameState {
+    let mut random = thread_rng();
     GameState {
         alive: true,
         paused: false,
         started: false,
         current_tetromino: get_rand_tetromino(),
-        next_tetromino: get_rand_tetromino(),
-        next_tetromino2: get_rand_tetromino(),
-        rotate: 0,
+        next_tetromino: random.gen_range(0..7),
+        next_tetromino2: random.gen_range(0..7),
         current_position: UVec2::new(0, 9),
+        step_timer: 0.0,
+        move_timer: 0.0
     }
 }
 
@@ -126,14 +129,14 @@ pub fn camera() -> Camera2dBundle {
 }
 
 fn calculate_preview_transform(config: &Res<ConfigData>, i: i32) -> Transform {
-    let x = config.gameConfig.tile_size * config.gameConfig.scale_factor * 8.0;
-    let y = config.gameConfig.tile_size * config.gameConfig.scale_factor * (if i == 0 { 8.0 } else { 3.0 });
-    Transform::from_scale(Vec3::new(config.gameConfig.scale_factor, config.gameConfig.scale_factor, 1.0))
+    let x = config.game_config.tile_size * config.game_config.scale_factor * 8.0;
+    let y = config.game_config.tile_size * config.game_config.scale_factor * (if i == 0 { 8.0 } else { 3.0 });
+    Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))
         .with_translation(Vec3::new(x, y, 0.0))
 }
 
 pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, i: i32) -> impl Bundle {
-    let texture_handle: Handle<Image> = asset_server.load(config.gameConfig.preview_img.clone());
+    let texture_handle: Handle<Image> = asset_server.load(config.game_config.preview_img.clone());
     (SpriteBundle {
         sprite: Sprite {
             ..default()
@@ -148,14 +151,14 @@ pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, 
 
 pub fn main_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
 
-    let texture_handle: Handle<Image> = asset_server.load(config.gameConfig.border_img.clone());
+    let texture_handle: Handle<Image> = asset_server.load(config.game_config.border_img.clone());
 
     (SpriteBundle {
         sprite: Sprite {
             ..default()
         },
         texture: texture_handle,
-        transform: Transform::from_scale(Vec3::new(config.gameConfig.scale_factor, config.gameConfig.scale_factor, 1.0))
+        transform: Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))
             .with_translation(Vec3::new(0.0, 0.0, 0.0)), 
         ..default()
     }, LastUpdate::default())
@@ -163,7 +166,7 @@ pub fn main_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> 
 
 pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
 
-    let texture_handle: Handle<Image> = asset_server.load(config.gameConfig.tiles_path.clone());
+    let texture_handle: Handle<Image> = asset_server.load(config.game_config.tiles_path.clone());
     let map_size = TilemapSize { x: 10, y: 20 };
     let tile_storage = TileStorage::empty(map_size);
     // let mut random = thread_rng();
@@ -183,7 +186,7 @@ pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -
     //     }
     // }
 
-    let tile_size = TilemapTileSize { x: config.gameConfig.tile_size, y: config.gameConfig.tile_size };
+    let tile_size = TilemapTileSize { x: config.game_config.tile_size, y: config.game_config.tile_size };
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
     // commands.entity(tilemap_entity).insert((
@@ -194,7 +197,7 @@ pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -
             storage: tile_storage,
             texture: TilemapTexture::Single(texture_handle),
             tile_size,
-            transform: calculate_transform(&map_size, &grid_size, &map_type, config.gameConfig.scale_factor, 0.0),
+            transform: calculate_transform(&map_size, &grid_size, &map_type, config.game_config.scale_factor, 0.0),
             ..Default::default()
         },
         LastUpdate::default())

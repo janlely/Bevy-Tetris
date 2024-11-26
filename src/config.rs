@@ -12,8 +12,8 @@ pub struct KeysConfig {
 }
 
 pub struct GameConfig {
-    pub step_delay: f32,
-    pub first_repeat_delay: f32,
+    pub step_delay: f64,
+    pub first_repeat_delay: f64,
     pub repeat_delay: f32,
     pub scale_factor: f32,
     pub tiles_path: String,
@@ -25,15 +25,15 @@ pub struct GameConfig {
 
 #[derive(Resource)]
 pub struct ConfigData {
-    pub keysConfig: KeysConfig,
-    pub gameConfig: GameConfig
+    pub keys_config: KeysConfig,
+    pub game_config: GameConfig
 }
 
-pub fn loadConfig(path: String) -> ConfigData {
+pub fn load_config(path: String) -> ConfigData {
     let map = ini!(&path);
     // Proceed to use normal HashMap functions on the map:
     ConfigData {
-        keysConfig: KeysConfig {
+        keys_config: KeysConfig {
             left: map["keyboard"]["left"].clone().unwrap(),
             right: map["keyboard"]["right"].clone().unwrap(),
             down: map["keyboard"]["down"].clone().unwrap(),
@@ -42,7 +42,7 @@ pub fn loadConfig(path: String) -> ConfigData {
             rotate_right: map["keyboard"]["rotate_right"].clone().unwrap(),
             pause: map["keyboard"]["pause"].clone().unwrap()
         },
-        gameConfig: GameConfig {
+        game_config: GameConfig {
             step_delay: map["game"]["step_delay"].clone().unwrap().parse().unwrap(),
             first_repeat_delay: map["game"]["first_repeat_delay"].clone().unwrap().parse().unwrap(),
             repeat_delay: map["game"]["repeat_delay"].clone().unwrap().parse().unwrap(),

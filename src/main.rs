@@ -1,6 +1,9 @@
 mod tetromino;
 mod config;
 mod scene;
+mod keys;
+mod helper;
+
 use std::ops::Deref;
 
 use bevy::{ecs::entity, prelude::*, render::{settings::{Backends, RenderCreation, WgpuSettings}, RenderPlugin}};
@@ -9,6 +12,8 @@ use config::ConfigData;
 use rand::{thread_rng, Rng};
 use scene::GameState;
 use tetromino::*;
+use keys::*;
+use helper::*
 
 #[macro_use]
 extern crate ini;
@@ -31,7 +36,7 @@ fn main() {
         }));
     }
     app.insert_resource(EntityContainer {..default()});
-    app.insert_resource(config::loadConfig("config.ini".to_string()));
+    app.insert_resource(config::load_config("config.ini".to_string()));
     app.insert_resource(scene::init_game_state());
     app.add_plugins(TilemapPlugin);
     app.add_systems(Startup, startup);
@@ -46,13 +51,13 @@ struct Name(String);
 struct EntityContainer {
     tilemap: Option<Entity>,
     preview1: Option<Entity>,
-    preview2: Option<Entity>
+    preview2: Option<Entity>,
 }
 
 fn spawn_tetromino(
     mut commands: Commands,
     state: &scene::GameState,
-    entity_container: &Res<EntityContainer>,
+    mut entity_container: ResMut<EntityContainer>,
     tetrominos: &Res<Tetrominos>,
     tile_storage: &mut TileStorage
 ) {
@@ -64,14 +69,15 @@ fn spawn_tetromino(
             .spawn(TileBundle {
                 position: tile_pos,
                 tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
-                texture_index: TileTextureIndex(state.current_tetromino.1),
+                texture_index: TileTextureIndex(state.current_tetromino.1 as u32),
                 ..Default::default()
             })
             .id();
         tile_storage.set(&tile_pos, tile_entity);
     }
     //预览区域放置方块
-    let preview1 = entity_container.preview1.unwrap();
+    entity_container.preview1 = Some(commands.spawn(tetrominos.0[state.next_tetromino].clone()).id());
+    entity_container.preview2 = Some(commands.spawn(tetrominos.0[state.next_tetromino2].clone()).id());
     
     
 }
@@ -80,22 +86,50 @@ fn update(
     mut commands: Commands,
     time: Res<Time>,
     mut state: ResMut<scene::GameState>,
-    entity_container: Res<EntityContainer>,
+    entity_container: ResMut<EntityContainer>,
     tetrominos: Res<Tetrominos>,
-    mut query: Query<(&mut scene::LastUpdate, &mut TileStorage)>
+    config: Res<ConfigData>,
+    mut query: Query<(&mut scene::LastUpdate, &mut TileStorage)>,
+    keyboard_input: Res<ButtonInput<KeyCode>>
 ) {
 
     let mut last_update = query.single_mut().0;
     let mut tile_storage = query.single_mut().1;
     // let tetromino = Tetromino::new(TetrominoType::I); 
     
+    //remove current tetromimo
+    if state.started {
+        for positon in state.current_tetromino.0.positions[state.rotate as usize].iter() {
+            let tile_pos = TilePos { x: positon.x + state.current_position.x, y: positon.y + state.current_position.y };
+            if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+                commands.entity(tile_entity).despawn_recursive();
+                // Don't forget to remove tiles from the tile storage!
+                tile_storage.remove(&tile_pos);
+            }
+        }
+    }
 
     //spawn tetromino
     if !state.started {
-        spawn_tetromino(commands, state.deref(), &entity_container, &tetrominos, &mut tile_storage);
+        spawn_tetromino(commands, state.deref(), entity_container, &tetrominos, &mut tile_storage);
         state.started = true;
+        state.stepTimer = time.elapsed_seconds_f64() + config.game_config.step_delay;
     }
 
+    //自动下降
+    if state.stepTimer < time.elapsed_seconds_f64() {
+        state.current_position = UVec2::new(state.current_position.x, state.current_position.y + 1);
+        state.stepTimer = time.elapsed_seconds_f64() + config.game_config.step_delay;
+    }
+
+    //处理键盘操作
+    
+
+    //handler key down
+    if keyboard_input.just_pressed(keys::fromStr(config.keys_config.left.as_str()))
+        && can_move_left(pos, state, tile_storage) {
+        
+    }
     
 }
 
@@ -124,17 +158,21 @@ fn startup(
     commands.spawn(scene::camera());
     //游戏区域tile_map
     let tilemap_entity= commands.spawn_empty().insert(Name("tilemap".to_string())).id();
-    let preview1_entity= commands.spawn_empty().id();
-    let preview2_entity: Entity= commands.spawn_empty().id();
+    // let preview1_entity= commands.spawn_empty().id();
+    // let preview2_entity: Entity= commands.spawn_empty().id();
     commands.entity(tilemap_entity).insert(scene::main_tilemap(&asset_server, &config));
     //游戏区域边框
-    commands.entity(tilemap_entity).insert(scene::main_board(&asset_server, &config));
+    // commands.entity(tilemap_entity).insert(scene::main_board(&asset_server, &config));
+    commands.spawn(scene::main_board(&asset_server, &config));
     //方块预览区1边框
-    commands.entity(preview1_entity).insert(scene::preview_board(&asset_server, &config, 0));
-    commands.entity(preview2_entity).insert(scene::preview_board(&asset_server, &config, 1));
+    // commands.entity(preview1_entity).insert(scene::preview_board(&asset_server, &config, 0));
+    // commands.entity(preview2_entity).insert(scene::preview_board(&asset_server, &config, 1));
+    commands.spawn(scene::preview_board(&asset_server, &config, 0));
+    commands.spawn(scene::preview_board(&asset_server, &config, 1));
     entity_container.tilemap = Some(tilemap_entity);
-    entity_container.preview1 = Some(preview1_entity);
-    entity_container.preview2 = Some(preview2_entity);
+    
+    // entity_container.preview1 = Some(preview1_entity);
+    // entity_container.preview2 = Some(preview2_entity);
 
     //生成三个方块， 一个放在游戏区域，一个放在预览区1，一个放在预览区2
     

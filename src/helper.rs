@@ -7,7 +7,7 @@ pub fn can_move_left(
     tile_storage: &TileStorage
 ) -> bool {
     state.current_tetromino.0.positions[state.current_tetromino.0.rotate as usize].iter().all(|position| {
-        position.x + state.current_position.x > -5
+        position.x + state.current_position.x >= 0
     }) && state.current_tetromino.0.left_most_position().iter().all(|position| {
         let tile_pos = TilePos {x: position.x - 1 + state.current_position, y: position.y + state.current_position};
         tile_storage.get(&tile_pos).is_none()

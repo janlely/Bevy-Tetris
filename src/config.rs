@@ -14,7 +14,7 @@ pub struct KeysConfig {
 pub struct GameConfig {
     pub step_delay: f64,
     pub first_repeat_delay: f64,
-    pub repeat_delay: f32,
+    pub repeat_delay: f64,
     pub scale_factor: f32,
     pub tiles_path: String,
     pub tile_size: f32,

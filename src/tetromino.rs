@@ -14,7 +14,7 @@ pub enum TetrominoType {
 #[derive(Clone, Copy, PartialEq)]
 pub struct Tetromino {
     pub tetromino_type: TetrominoType,
-    pub positions: [[UVec2; 4]; 4],
+    pub positions: [[IVec2; 4]; 4],
     pub index: usize,
     pub rotate: usize
 }
@@ -23,51 +23,51 @@ impl Tetromino {
     pub fn new(tetromino_type: TetrominoType, index: usize) -> Self {
         let positions = match tetromino_type {
             TetrominoType::I => [
-                [UVec2::new(0,0), UVec2::new(0,1), UVec2::new(0,2), UVec2::new(0,3)],
-                [UVec2::new(-1,2), UVec2::new(0,2), UVec2::new(1,2), UVec2::new(2,2)],
-                [UVec2::new(0,3), UVec2::new(0,2), UVec2::new(0,1), UVec2::new(0,0)],
-                [UVec2::new(1,2), UVec2::new(0,2), UVec2::new(-1,2), UVec2::new(-2,2)],
+                [IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2), IVec2::new(0,3)],
+                [IVec2::new(-1,2), IVec2::new(0,2), IVec2::new(1,2), IVec2::new(2,2)],
+                [IVec2::new(0,3), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
+                [IVec2::new(1,2), IVec2::new(0,2), IVec2::new(-1,2), IVec2::new(-2,2)],
 
             ],
             TetrominoType::O => [
-                [UVec2::new(0,0), UVec2::new(1,0), UVec2::new(1,1), UVec2::new(0,1)],
-                [UVec2::new(0,1), UVec2::new(0,0), UVec2::new(1,0), UVec2::new(1,1)],
-                [UVec2::new(1,1), UVec2::new(0,1), UVec2::new(0,0), UVec2::new(1,0)],
-                [UVec2::new(1,0), UVec2::new(1,1), UVec2::new(0,1), UVec2::new(0,0)],
+                [IVec2::new(0,0), IVec2::new(1,0), IVec2::new(1,1), IVec2::new(0,1)],
+                [IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0), IVec2::new(1,1)],
+                [IVec2::new(1,1), IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0)],
+                [IVec2::new(1,0), IVec2::new(1,1), IVec2::new(0,1), IVec2::new(0,0)],
             ],
             TetrominoType::J => [
-                [UVec2::new(0,0), UVec2::new(1,0), UVec2::new(1,1), UVec2::new(1,2)],
-                [UVec2::new(0,1), UVec2::new(0,0), UVec2::new(1,0), UVec2::new(2,0)],
-                [UVec2::new(1,2), UVec2::new(0,2), UVec2::new(0,1), UVec2::new(0,0)],
-                [UVec2::new(2,0), UVec2::new(2,1), UVec2::new(1,1), UVec2::new(0,1)],
+                [IVec2::new(0,0), IVec2::new(1,0), IVec2::new(1,1), IVec2::new(1,2)],
+                [IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0), IVec2::new(2,0)],
+                [IVec2::new(1,2), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
+                [IVec2::new(2,0), IVec2::new(2,1), IVec2::new(1,1), IVec2::new(0,1)],
 
             ],
             TetrominoType::L => [
-                [UVec2::new(0,2), UVec2::new(0,1), UVec2::new(0,0), UVec2::new(1,0)],
-                [UVec2::new(2,1), UVec2::new(1,1), UVec2::new(0,1), UVec2::new(0,0)],
-                [UVec2::new(1,0), UVec2::new(1,1), UVec2::new(1,2), UVec2::new(0,2)],
-                [UVec2::new(0,0), UVec2::new(1,0), UVec2::new(2,0), UVec2::new(2,1)],
+                [IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0)],
+                [IVec2::new(2,1), IVec2::new(1,1), IVec2::new(0,1), IVec2::new(0,0)],
+                [IVec2::new(1,0), IVec2::new(1,1), IVec2::new(1,2), IVec2::new(0,2)],
+                [IVec2::new(0,0), IVec2::new(1,0), IVec2::new(2,0), IVec2::new(2,1)],
 
             ],
             TetrominoType::S => [
-                [UVec2::new(1,1), UVec2::new(0,1), UVec2::new(0,0), UVec2::new(-1,0)],
-                [UVec2::new(0,0), UVec2::new(0,1), UVec2::new(-1,1), UVec2::new(-1,2)],
-                [UVec2::new(-1,0), UVec2::new(0,0), UVec2::new(0,1), UVec2::new(1,1)],
-                [UVec2::new(-1,2), UVec2::new(-1,1), UVec2::new(0,1), UVec2::new(0,0)],
+                [IVec2::new(1,1), IVec2::new(0,1), IVec2::new(0,0), IVec2::new(-1,0)],
+                [IVec2::new(0,0), IVec2::new(0,1), IVec2::new(-1,1), IVec2::new(-1,2)],
+                [IVec2::new(-1,0), IVec2::new(0,0), IVec2::new(0,1), IVec2::new(1,1)],
+                [IVec2::new(-1,2), IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(0,0)],
 
             ],
             TetrominoType::T => [
-                [UVec2::new(0,0), UVec2::new(-1,1), UVec2::new(0,1), UVec2::new(1,1)],
-                [UVec2::new(-1,1), UVec2::new(0,2), UVec2::new(0,1), UVec2::new(0,0)],
-                [UVec2::new(0,1), UVec2::new(1,0), UVec2::new(0,0), UVec2::new(-1,0)],
-                [UVec2::new(1,1), UVec2::new(0,0), UVec2::new(0,1), UVec2::new(0,2)],
+                [IVec2::new(0,0), IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(1,1)],
+                [IVec2::new(-1,1), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
+                [IVec2::new(0,1), IVec2::new(1,0), IVec2::new(0,0), IVec2::new(-1,0)],
+                [IVec2::new(1,1), IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2)],
 
             ],
             TetrominoType::Z => [
-                [UVec2::new(-1,1), UVec2::new(0,1), UVec2::new(0,0), UVec2::new(1,0)],
-                [UVec2::new(0,2), UVec2::new(0,1), UVec2::new(-1,1), UVec2::new(-1,0)],
-                [UVec2::new(1,0), UVec2::new(0,0), UVec2::new(0,1), UVec2::new(-1,1)],
-                [UVec2::new(-1,0), UVec2::new(-1,1), UVec2::new(0,1), UVec2::new(0,2)],
+                [IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0)],
+                [IVec2::new(0,2), IVec2::new(0,1), IVec2::new(-1,1), IVec2::new(-1,0)],
+                [IVec2::new(1,0), IVec2::new(0,0), IVec2::new(0,1), IVec2::new(-1,1)],
+                [IVec2::new(-1,0), IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(0,2)],
             ],
         };
 
@@ -79,10 +79,10 @@ impl Tetromino {
         }
     }
 
-    pub fn get_position(&self) -> [UVec2; 4] {
+    pub fn get_position(&self) -> [IVec2; 4] {
         self.positions[self.rotate]
     }
-    pub fn down_most_position(&self) -> Vec<UVec2>{
+    pub fn down_most_position(&self) -> Vec<IVec2>{
         let position = self.get_position();
         match self.rotate {
             0 => match self.tetromino_type {
@@ -152,7 +152,7 @@ impl Tetromino {
 
     }
 
-    pub fn right_most_position(&self) -> Vec<UVec2> {
+    pub fn right_most_position(&self) -> Vec<IVec2> {
         let position = self.get_position();
         match self.rotate {
             0 =>
@@ -225,7 +225,7 @@ impl Tetromino {
         }
     }
 
-    pub fn left_most_position(&self) -> Vec<UVec2> {
+    pub fn left_most_position(&self) -> Vec<IVec2> {
         let position = self.get_position();
         match self.rotate {
             0 =>

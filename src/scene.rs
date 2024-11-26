@@ -15,25 +15,26 @@ pub struct GameState {
     pub alive: bool,
     pub paused: bool,
     pub started: bool,
-    pub current_tetromino: (Tetromino, usize),
-    pub next_tetromino: usize,
-    pub next_tetromino2: usize,
+    pub current_tetromino: Tetromino,
+    pub next_tetromino: (TetrominoType, usize),
+    pub next_tetromino2: (TetrominoType, usize),
     pub current_position: IVec2,
     pub step_timer: f64,
     pub move_timer: f64,
+    pub hit_bottom_timer: f64
 }
 
-fn get_rand_tetromino() -> (Tetromino, usize) {
+pub fn get_rand_tetromino() -> (TetrominoType, usize) {
     let mut random = thread_rng();
     let num = random.gen_range(0..7);
     match num {
-        0 => (Tetromino::new(TetrominoType::I, 0), 0),
-        1 => (Tetromino::new(TetrominoType::J, 1), 1),
-        2 => (Tetromino::new(TetrominoType::L, 2), 2),
-        3 => (Tetromino::new(TetrominoType::O, 3), 3),
-        4 => (Tetromino::new(TetrominoType::S, 4), 4),
-        5 => (Tetromino::new(TetrominoType::T, 4), 5),
-        6 => (Tetromino::new(TetrominoType::Z, 6), 6),
+        0 => (TetrominoType::I, 0),
+        1 => (TetrominoType::J, 1),
+        2 => (TetrominoType::L, 2),
+        3 => (TetrominoType::O, 3),
+        4 => (TetrominoType::S, 4),
+        5 => (TetrominoType::T, 4),
+        6 => (TetrominoType::Z, 6),
         _ => panic!("Invalid random number!")
     }
 }
@@ -110,15 +111,16 @@ pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoTyp
 } 
 
 pub fn init_game_state() -> GameState {
-    let mut random = thread_rng();
+    let t = get_rand_tetromino();
     GameState {
         alive: true,
         paused: false,
         started: false,
-        current_tetromino: get_rand_tetromino(),
-        next_tetromino: random.gen_range(0..7),
-        next_tetromino2: random.gen_range(0..7),
-        current_position: UVec2::new(0, 9),
+        current_tetromino: Tetromino::new(t.0, t.1),
+        next_tetromino: get_rand_tetromino(),
+        next_tetromino2: get_rand_tetromino(),
+        current_position: IVec2::new(0, 9),
+        hit_bottom_timer: 0.0,
         step_timer: 0.0,
         move_timer: 0.0
     }

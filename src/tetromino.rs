@@ -23,10 +23,10 @@ impl Tetromino {
     pub fn new(tetromino_type: TetrominoType, index: usize) -> Self {
         let positions = match tetromino_type {
             TetrominoType::I => [
-                [IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2), IVec2::new(0,3)],
                 [IVec2::new(-1,2), IVec2::new(0,2), IVec2::new(1,2), IVec2::new(2,2)],
                 [IVec2::new(0,3), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
                 [IVec2::new(1,2), IVec2::new(0,2), IVec2::new(-1,2), IVec2::new(-2,2)],
+                [IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2), IVec2::new(0,3)],
 
             ],
             TetrominoType::O => [
@@ -81,6 +81,18 @@ impl Tetromino {
 
     pub fn get_position(&self) -> [IVec2; 4] {
         self.positions[self.rotate]
+    }
+
+    pub fn get_position2(&self, rotate: usize) -> [IVec2; 4] {
+        self.positions[rotate]
+    }
+
+    pub fn rotate_left(&mut self) {
+        self.rotate = (self.rotate + 3) % 4;
+    }
+
+    pub fn rotate_right(&mut self) {
+        self.rotate = (self.rotate + 1) % 4;
     }
     pub fn down_most_position(&self) -> Vec<IVec2>{
         let position = self.get_position();

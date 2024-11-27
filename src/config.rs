@@ -1,6 +1,7 @@
 use bevy::prelude::Resource;
 
 
+#[derive(Debug)]
 pub struct KeysConfig {
     pub left: String,
     pub right: String,
@@ -11,6 +12,7 @@ pub struct KeysConfig {
     pub pause: String
 }
 
+#[derive(Debug)]
 pub struct GameConfig {
     pub step_delay: f64,
     pub first_repeat_delay: f64,
@@ -23,7 +25,7 @@ pub struct GameConfig {
 
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct ConfigData {
     pub keys_config: KeysConfig,
     pub game_config: GameConfig
@@ -32,7 +34,7 @@ pub struct ConfigData {
 pub fn load_config(path: String) -> ConfigData {
     let map = ini!(&path);
     // Proceed to use normal HashMap functions on the map:
-    ConfigData {
+    let config = ConfigData {
         keys_config: KeysConfig {
             left: map["keyboard"]["left"].clone().unwrap(),
             right: map["keyboard"]["right"].clone().unwrap(),
@@ -52,5 +54,7 @@ pub fn load_config(path: String) -> ConfigData {
             border_img: map["game"]["border_img"].clone().unwrap(),
             preview_img: map["game"]["preview_img"].clone().unwrap(),
         }
-    }
+    };
+    println!("DEBUG: config::load_config, 58, data: {:?}", config);
+    config
 }

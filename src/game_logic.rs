@@ -100,30 +100,37 @@ pub struct EntityContainer {
 #[derive(Resource)]
 pub struct Tetrominos([SpriteBundle; 7]);
 
+//生成方块
 pub fn spawn(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     time: Res<Time>,
     tetrominos: Res<Tetrominos>,
     mut entity_container: ResMut<EntityContainer>,
 ) {
     println!("DEBUG: helper::spawn, 97");
-    //更新方块
+    //重置方块位置，设置成最上面
     state.current_position = IVec2::new(4, 18);
-    state.current_tetromino = Tetromino::new(state.next_tetromino.0, state.next_tetromino.1);
+    //使用预览区1的方块创建游戏方块
+    state.current_tetromino = tetromino::Tetromino::new(state.next_tetromino.0, state.next_tetromino.1);
+    //预览区2的方块提升到预览区1，预览区2生成新方块
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
+    //删除预览区的方块精灵
     if let Some(preive1_entity) = entity_container.preview1 {
         commands.entity(preive1_entity).despawn_recursive();
     }
     if let Some(preive2_entity) = entity_container.preview2 {
         commands.entity(preive2_entity).despawn_recursive();
     }
+    //重新生成新的预览区方块精灵
     let preview1_entity = commands.spawn(tetrominos.0[state.next_tetromino.1].clone()).id();
     let preview2_entity = commands.spawn(tetrominos.0[state.next_tetromino2.1].clone()).id();
+    //保存预览区精灵的句柄
     entity_container.preview1 = Some(preview1_entity);
     entity_container.preview2 = Some(preview2_entity);
+    //设置预览区精灵的位置
     commands.entity(preview1_entity).insert(scene::calculate_preview_transform(&config, 0));
     commands.entity(preview2_entity).insert(scene::calculate_preview_transform(&config, 2));
     //重置计时器
@@ -134,7 +141,7 @@ pub fn spawn(
 pub fn step_down(
     mut state: ResMut<scene::GameState>,
     time: Res<Time>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     query: Query<&TileStorage>,
 ) {
     if state.step_timer < time.elapsed_seconds_f64() {
@@ -152,7 +159,7 @@ pub fn step_down(
 fn handler_key_event(
     time: Res<Time>,
     mut state: ResMut<scene::GameState>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     query: Query<&TileStorage>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     just_pressed: bool
@@ -203,7 +210,7 @@ fn handler_key_event(
 pub fn handler_key_down(
     time: Res<Time>,
     state: ResMut<scene::GameState>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     query: Query<&TileStorage>,
     keyboard_input: Res<ButtonInput<KeyCode>>
 ) {
@@ -213,7 +220,7 @@ pub fn handler_key_down(
 pub fn handler_key_repeat(
     time: Res<Time>,
     state: ResMut<scene::GameState>,
-    config: Res<ConfigData>,
+    config: Res<confg::ConfigData>,
     query: Query<&TileStorage>,
     keyboard_input: Res<ButtonInput<KeyCode>>
 ) {
@@ -226,7 +233,7 @@ pub fn handler_key_repeat(
 pub fn clear_lines(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     mut query: Query<&mut TileStorage>,
     mut query2: Query<&mut TilePos>,
     time: Res<Time>,
@@ -383,6 +390,7 @@ fn is_full_line(
     true
 }
 
+//删除游戏方块
 pub fn remove_piece(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
@@ -390,8 +398,9 @@ pub fn remove_piece(
     time: Res<Time>
 ) {
     //触底判定时间更新
-    state.hit_bottom_timer += time.delta_seconds_f64();
+    // state.hit_bottom_timer += time.delta_seconds_f64();
     let mut tile_storage = query.single_mut();
+    //遍历当前方块的位置，并更新tilemap
     for positon in state.current_tetromino.get_position().iter() {
         let tile_pos = TilePos {
             x: (positon.x + state.current_position.x) as u32,
@@ -402,12 +411,12 @@ pub fn remove_piece(
         }
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             commands.entity(tile_entity).despawn_recursive();
-            // Don't forget to remove tiles from the tile storage!
             tile_storage.remove(&tile_pos);
         }
     }
 }
 
+//绘制游戏方块
 pub fn draw_piece(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
@@ -416,6 +425,7 @@ pub fn draw_piece(
 ) {
     // println!("DEBUG: helper::draw_piece, 369, x: {}, y: {}", state.current_position.x, state.current_position.y);
     let mut tile_storage = query.single_mut();
+    //遍历当前方块的位置，并更新tilemap
     for positon in state.current_tetromino.get_position().iter() {
         let tile_pos = TilePos {
             x: (positon.x + state.current_position.x) as u32,
@@ -424,11 +434,6 @@ pub fn draw_piece(
         if tile_pos.x >= 10 || tile_pos.y >= 20 {
             continue;
         }
-        // println!("DEBUG: helper::draw_piece, 353, x: {}, y: {}", tile_pos.x, tile_pos.y);
-        // if let Some(_some_entity) = tile_storage.get(&tile_pos) {
-        //     state.alive = false;
-        //     return;
-        // }
         let tile_entity = commands
             .spawn(TileBundle {
                 position: tile_pos,
@@ -443,20 +448,22 @@ pub fn draw_piece(
 pub fn init_scene(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
     mut entity_container: ResMut<EntityContainer>
 ) {
 
+    //预览区域要显示的方块精灵
     let tetrominos = Tetrominos([
-        scene::make_sprite(&asset_server, TetrominoType::I),
-        scene::make_sprite(&asset_server, TetrominoType::J),
-        scene::make_sprite(&asset_server, TetrominoType::L),
-        scene::make_sprite(&asset_server, TetrominoType::O),
-        scene::make_sprite(&asset_server, TetrominoType::S),
-        scene::make_sprite(&asset_server, TetrominoType::T),
-        scene::make_sprite(&asset_server, TetrominoType::Z),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::I),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::J),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::L),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::O),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::S),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::T),
+        scene::make_sprite(&asset_server, tetromino::TetrominoType::Z),
     ]);
 
+    //插入到resource中，供后续的system使用
     commands.insert_resource(tetrominos);
     //相机
     commands.spawn(scene::camera());
@@ -468,6 +475,7 @@ pub fn init_scene(
     //方块预览区1边框
     commands.spawn(scene::preview_board(&asset_server, &config, 0));
     commands.spawn(scene::preview_board(&asset_server, &config, 1));
+    //把tilemap_entity插入到resource，方便以后的system使用
     entity_container.tilemap = Some(tilemap_entity);
 }
 
@@ -479,7 +487,7 @@ pub fn should_run(state: Res<scene::GameState>) -> bool {
 pub fn hit_bottom(
     state: Res<scene::GameState>,
     query: Query<&TileStorage>,
-    config: Res<ConfigData>,
+    config: Res<config::ConfigData>,
 ) -> bool {
     let tile_storage = query.single();
     let should1 = !can_move_down(&state, tile_storage);
@@ -523,4 +531,11 @@ pub fn reinit(
     //重置方块位置
     state.current_position = IVec2::new(4, 19);
 
+}
+
+pub fn update_timer(
+    mut state: ResMut<scene::GameState>,
+    time: Res<Time>
+) {
+    state.hit_bottom_timer += time.delta_seconds_f64();
 }

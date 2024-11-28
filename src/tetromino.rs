@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TetrominoType {
     I,
     J,
@@ -11,7 +11,7 @@ pub enum TetrominoType {
     Z,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Tetromino {
     pub tetromino_type: TetrominoType,
     pub positions: [[IVec2; 4]; 4],
@@ -98,8 +98,7 @@ impl Tetromino {
         let position = self.get_position();
         match self.rotate {
             0 => match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[0]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[0], position[1]],
                     TetrominoType::J =>
@@ -114,7 +113,7 @@ impl Tetromino {
                         vec![position[0], position[2], position[3]],
                 }
             1 => match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I => vec![position[3]],
                     TetrominoType::O =>
                         vec![position[1], position[2]],
                     TetrominoType::J =>
@@ -129,8 +128,7 @@ impl Tetromino {
                         vec![position[1], position[3]],
                 }
             2 => match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[3]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[2], position[3]],
                     TetrominoType::J =>
@@ -145,7 +143,7 @@ impl Tetromino {
                         vec![position[0], position[1], position[3]],
                 }
             3 => match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I => vec![position[0]],
                     TetrominoType::O =>
                         vec![position[0], position[3]],
                     TetrominoType::J =>

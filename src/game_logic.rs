@@ -1,49 +1,55 @@
+use std::collections::HashMap;
 use std::ops::{Deref};
 use bevy::color::Color::Srgba;
 use bevy::color::palettes::css::RED;
 use bevy::input::ButtonInput;
 use bevy::math::IVec2;
 use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, SpriteBundle, Time};
-use crate::{config::ConfigData, keys, scene};
+use crate::{config, keys, scene, tetromino};
 use bevy_ecs_tilemap::tiles::{TilePos, TileStorage};
-use crate::tetromino::{Tetromino, TetrominoType};
+// use crate::tetromino::{Tetromino, TetrominoType};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AppState {
+    #[default]
+    RUNNING,
+    PAUSED,
+    DEAD
+}
 
 pub fn can_move_left(
     state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
-    let left_most: Vec<IVec2> = state.current_tetromino.left_most_position().iter().map(|p| {
+    let left_most  = state.current_tetromino.left_most_position().iter().map(|p| {
         IVec2::new(p.x + state.current_position.x - 1 , p.y + state.current_position.y)
-    }).collect();
-    has_no_tile(&left_most, state, tile_storage)
+    }).collect::<Vec<IVec2>>();
+    has_no_tile(&left_most, tile_storage)
 }
 
 pub fn can_move_right(
     state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
-    let right_most: Vec<IVec2> = state.current_tetromino.right_most_position().iter().map(|p| {
+    let right_most = state.current_tetromino.right_most_position().iter().map(|p| {
         IVec2::new(p.x + state.current_position.x + 1, p.y + state.current_position.y)
-    }).collect();
-    has_no_tile(&right_most, state, tile_storage)
+    }).collect::<Vec<IVec2>>();
+    has_no_tile(&right_most, tile_storage)
 }
 
 fn has_no_tile(
     position: &[IVec2],
-    state: &scene::GameState,
+    // state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
     position.iter().all(|position| {
         let tile_pos = TilePos {
-            x: (position.x + state.current_position.x) as u32,
-            y: (position.y + state.current_position.y) as u32
+            x: position.x as u32,
+            y: position.y as u32
         };
-        let x = position.x + state.current_position.x;
-        let y = position.y + state.current_position.y;
-        x >= 0 && x <= 9 && y >= 0 && y <= 19 && tile_storage.get(&tile_pos).is_none()
+        tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y >= 0 && tile_pos.y <= 19 && tile_storage.get(&tile_pos).is_none()
     })
 }
 
@@ -51,19 +57,27 @@ pub fn can_rotate_left(
     state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
-    let rotate = (state.current_tetromino.rotate + 3) % 4;
-    let rotated_position= state.current_tetromino.get_position2(rotate);
-    has_no_tile(&rotated_position, state, tile_storage)
+    can_rotate(state, tile_storage, 3)
 }
 
+fn can_rotate(
+    state: &scene::GameState,
+    tile_storage: &TileStorage,
+    i: usize,
+) -> bool {
+    let rotate = (state.current_tetromino.rotate + i) % 4;
+    let rotated_position= state.current_tetromino.get_position2(rotate)
+        .iter().map(|p| {
+        IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
+    }).collect::<Vec<IVec2>>();
+    has_no_tile(&rotated_position, tile_storage)
+}
 
 pub fn can_rotate_right(
     state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
-    let rotate = (state.current_tetromino.rotate + 1) % 4;
-    let rotated_position= state.current_tetromino.get_position2(rotate);
-    has_no_tile(&rotated_position, state, tile_storage)
+    can_rotate(state, tile_storage, 1)
 }
 
 pub fn can_move_down(
@@ -73,7 +87,7 @@ pub fn can_move_down(
     let down_most: Vec<IVec2> = state.current_tetromino.down_most_position().iter().map(|p| {
         IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y - 1)
     }).collect();
-    has_no_tile(&down_most, state, tile_storage)
+    has_no_tile(&down_most, tile_storage)
 }
 
 #[derive(Resource, Default)]
@@ -94,8 +108,9 @@ pub fn spawn(
     tetrominos: Res<Tetrominos>,
     mut entity_container: ResMut<EntityContainer>,
 ) {
-    // spawn_tetromino(commands, state.deref_mut(), entity_container, &tetrominos);
+    println!("DEBUG: helper::spawn, 97");
     //更新方块
+    state.current_position = IVec2::new(4, 18);
     state.current_tetromino = Tetromino::new(state.next_tetromino.0, state.next_tetromino.1);
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
@@ -105,8 +120,12 @@ pub fn spawn(
     if let Some(preive2_entity) = entity_container.preview2 {
         commands.entity(preive2_entity).despawn_recursive();
     }
-    entity_container.preview1 = Some(commands.spawn(tetrominos.0[state.next_tetromino.1].clone()).id());
-    entity_container.preview2 = Some(commands.spawn(tetrominos.0[state.next_tetromino2.1].clone()).id());
+    let preview1_entity = commands.spawn(tetrominos.0[state.next_tetromino.1].clone()).id();
+    let preview2_entity = commands.spawn(tetrominos.0[state.next_tetromino2.1].clone()).id();
+    entity_container.preview1 = Some(preview1_entity);
+    entity_container.preview2 = Some(preview2_entity);
+    commands.entity(preview1_entity).insert(scene::calculate_preview_transform(&config, 0));
+    commands.entity(preview2_entity).insert(scene::calculate_preview_transform(&config, 2));
     //重置计时器
     state.step_timer = time.elapsed_seconds_f64() + config.game_config.step_delay;
     state.hit_bottom_timer = 0.0;
@@ -115,11 +134,18 @@ pub fn spawn(
 pub fn step_down(
     mut state: ResMut<scene::GameState>,
     time: Res<Time>,
-    config: Res<ConfigData>
+    config: Res<ConfigData>,
+    query: Query<&TileStorage>,
 ) {
     if state.step_timer < time.elapsed_seconds_f64() {
-        state.current_position = IVec2::new(state.current_position.x, state.current_position.y + 1);
+        let tile_storage = query.single();
+        if !can_move_down(&state, tile_storage) {
+            return;
+        }
+        state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.step_timer = time.elapsed_seconds_f64() + config.game_config.step_delay;
+        println!("DEBUG: helper::step_down, 125, y: {}", state.current_position.y);
+        state.hit_bottom_timer = 0.0;
     }
 }
 
@@ -152,21 +178,21 @@ fn handler_key_event(
         && can_move_down(state.deref(), &tile_storage) {
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.hit_bottom_timer = 0.0;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_left.as_str()))
         && can_rotate_left(state.deref(), &tile_storage) {
-        // state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.current_tetromino.rotate_left();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_right.as_str()))
         && can_rotate_right(state.deref(), &tile_storage) {
-        // state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.current_tetromino.rotate_right();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.drop.as_str())) {
         while can_move_down(state.deref(), &tile_storage) {
+            println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
             state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         }
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
@@ -199,75 +225,110 @@ pub fn handler_key_repeat(
 
 pub fn clear_lines(
     mut commands: Commands,
-    state: ResMut<scene::GameState>,
+    mut state: ResMut<scene::GameState>,
     config: Res<ConfigData>,
     mut query: Query<&mut TileStorage>,
+    mut query2: Query<&mut TilePos>,
     time: Res<Time>,
     tetrominos: Res<Tetrominos>,
     entity_container: ResMut<EntityContainer>,
 ) {
+    // println!("DEBUG: helper::clear_lines, 224, {:?}, {:?}", state.current_tetromino.get_position(), state.current_position);
+    if state.current_tetromino.get_position().iter().any(|p| p.y + state.current_position.y > 19) {
+        println!("DEBUG: helper::clear_lines, 226");
+        state.alive = false;
+        return;
+    }
     let mut tile_storage = query.single_mut();
-    if state.hit_bottom_timer < config.game_config.step_delay {
-        return;
-    }
-    if can_move_down(state.deref(), &tile_storage) {
-        return;
-    }
     let Some(lowest_y) = state.current_tetromino.down_most_position().iter().map(|p| p.y + state.current_position.y).min() else {
-        return;
+        println!("DEBUG: helper::clear_lines, 225, state: {:?}", state);
+        panic!("should hive lowest.y");
     };
 
+    println!("DEBUG: helper::clear_lines, 232, lowest_y: {}", lowest_y);
+
     //消除满行
-    let mut start_line = lowest_y;
+    let mut line_to_remove = lowest_y as u32;
+    let mut lines_to_remove = vec![];
     let mut count = 0;
     for _i in 0..4 {
-        if is_full_line(start_line as u32, &tile_storage) {
+        if line_to_remove < 18 && is_full_line(line_to_remove as u32, &tile_storage) {
             count += 1;
+            lines_to_remove.push(line_to_remove);
             //clear_line
-            clear_line(&mut commands, start_line as u32, tile_storage.as_mut());
+            println!("DEBUG: helper::clear_lines, 241, clean_line");
+            clear_line(&mut commands, line_to_remove as u32, tile_storage.as_mut());
         }
-        start_line += 1;
+        line_to_remove += 1;
     }
-
     //无可消除行
     if count == 0 {
+        spawn(commands, state, config, time, tetrominos, entity_container);
         return;
     }
 
-    //消除行之后，上面的行补位
-    let mut p1 = lowest_y;
-    let mut p2 = p1 + 1;
-    while p1 < p2 && p2 < 10 {
-        if !is_empty_line(p2 as u32, &tile_storage) {
-            move_line_down(p2 as u32, p1 as u32, tile_storage.as_mut());
-            p1 += 1;
+    let mut first_line = lines_to_remove[0];
+    // let mut swap: Vec<(u32, u32)> = vec![];
+    let mut swap = HashMap::new();
+    let mut idx = first_line;
+    for i in first_line..20 {
+        if !lines_to_remove.contains(&i) {
+            swap.insert(i, idx);
+            idx += 1;
         }
-        p2 += 1;
+    }
+    for mut pos in query2.iter_mut() {
+        if swap.contains_key(&pos.y) {
+            let Some(entity) = tile_storage.get(&pos) else {
+                panic!("PANIC: helper::clear_lines, 275, x: {}, y: {}", pos.x, pos.y);
+            };
+            let old_pos = *pos;
+            pos.y = swap[&pos.y];
+            tile_storage.remove(&old_pos);
+            tile_storage.set(&pos, entity);
+            let before = tile_storage.get(&old_pos).is_none();
+            let after = tile_storage.get(&pos).is_none();
+            if !before || after {
+                panic!("PANIC: helper::clear_lines, 285");
+            }
+        }
     }
 
     spawn(commands, state, config, time, tetrominos, entity_container);
 }
 
-fn move_line_down(
-    up: u32,
-    down: u32,
-    tile_storage: &mut TileStorage
-) {
-    for i in 0..10 {
-        let tile_pos_up = TilePos {
-            x: i,
-            y: up
-        };
-        let tile_pos_down= TilePos {
-            x: i,
-            y: down
-        };
-        if let Some(tile_entity) = tile_storage.get(&tile_pos_up) {
-            tile_storage.set(&tile_pos_down, tile_entity);
-            tile_storage.remove(&tile_pos_up);
-        }
-    }
-}
+// fn move_line_down(
+    // commands: &mut Commands,
+    // up: u32,
+    // down: u32,
+    // tile_storage: &mut TileStorage,
+    // entity_container: Res<EntityContainer>,
+    // mut query: Query<&mut TilePos>,
+// ) {
+    // for i in 0..10 {
+    //     let tile_pos_up = TilePos {
+    //         x: i,
+    //         y: up
+    //     };
+    //     let tile_pos_down= TilePos {
+    //         x: i,
+    //         y: down
+    //     };
+
+        // if let Some(tile_entity) = tile_storage.get(&tile_pos_up) {
+        //     let tile_entity = commands
+        //         .spawn(TileBundle {
+        //             position: tile_pos_down,
+        //             tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
+        //             texture_index: TileTextureIndex(state.current_tetromino.index as u32),
+        //             ..Default::default()
+        //         })
+        //         .id();
+        //     tile_storage.set(&tile_pos_down, tile_entity);
+        //     tile_storage.remove(&tile_pos_up);
+        // }
+    // }
+// }
 
 fn clear_line(
     commands: &mut Commands,
@@ -312,6 +373,9 @@ fn is_full_line(
             x: i,
             y: line
         };
+        if tile_pos.y < 0 || tile_pos.y > 19 {
+            panic!("DEBUG: helper::is_full_line, 328, x: {}, y: {}", tile_pos.x, tile_pos.y);
+        }
         if tile_storage.get(&tile_pos).is_none() {
             return false;
         }
@@ -321,9 +385,12 @@ fn is_full_line(
 
 pub fn remove_piece(
     mut commands: Commands,
-    state: ResMut<scene::GameState>,
-    mut query: Query<&mut TileStorage>
+    mut state: ResMut<scene::GameState>,
+    mut query: Query<&mut TileStorage>,
+    time: Res<Time>
 ) {
+    //触底判定时间更新
+    state.hit_bottom_timer += time.delta_seconds_f64();
     let mut tile_storage = query.single_mut();
     for positon in state.current_tetromino.get_position().iter() {
         let tile_pos = TilePos {
@@ -347,6 +414,7 @@ pub fn draw_piece(
     entity_container: ResMut<EntityContainer>,
     mut query: Query<&mut TileStorage>
 ) {
+    // println!("DEBUG: helper::draw_piece, 369, x: {}, y: {}", state.current_position.x, state.current_position.y);
     let mut tile_storage = query.single_mut();
     for positon in state.current_tetromino.get_position().iter() {
         let tile_pos = TilePos {
@@ -357,10 +425,10 @@ pub fn draw_piece(
             continue;
         }
         // println!("DEBUG: helper::draw_piece, 353, x: {}, y: {}", tile_pos.x, tile_pos.y);
-        if let Some(_some_entity) = tile_storage.get(&tile_pos) {
-            state.alive = false;
-            return;
-        }
+        // if let Some(_some_entity) = tile_storage.get(&tile_pos) {
+        //     state.alive = false;
+        //     return;
+        // }
         let tile_entity = commands
             .spawn(TileBundle {
                 position: tile_pos,
@@ -408,6 +476,18 @@ pub fn should_run(state: Res<scene::GameState>) -> bool {
     !state.paused && state.alive
 }
 
+pub fn hit_bottom(
+    state: Res<scene::GameState>,
+    query: Query<&TileStorage>,
+    config: Res<ConfigData>,
+) -> bool {
+    let tile_storage = query.single();
+    let should1 = !can_move_down(&state, tile_storage);
+    let should2 = state.hit_bottom_timer >= config.game_config.step_delay;
+    // println!("DEBUG: helper::should_clear, 435, should1: {}, hit_timer: {}, should2: {}", should1, state.hit_bottom_timer, should2);
+    should1 && should2
+}
+
 pub fn game_over(
     mut commands: Commands,
     state: ResMut<scene::GameState>,
@@ -428,4 +508,19 @@ pub fn game_over(
             ..default()
         })
     );
+}
+
+pub fn reinit(
+    mut state: ResMut<scene::GameState>,
+    time: Res<Time>,
+    config: Res<config::ConfigData>
+) {
+
+    //重置触底判定时间
+    state.hit_bottom_timer = 0.0;
+    //重置方块自动下降时间
+    state.step_timer = time.elapsed_seconds_f64() + config.game_config.step_delay;
+    //重置方块位置
+    state.current_position = IVec2::new(4, 19);
+
 }

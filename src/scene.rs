@@ -10,7 +10,7 @@ use crate::tetromino::*;
 //     value: f64,
 // }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct GameState {
     pub alive: bool,
     pub paused: bool,
@@ -117,7 +117,7 @@ pub fn init_game_state() -> GameState {
         current_tetromino: Tetromino::new(t.0, t.1),
         next_tetromino: get_rand_tetromino(),
         next_tetromino2: get_rand_tetromino(),
-        current_position: IVec2::new(5, 19),
+        current_position: IVec2::new(4, 18),
         hit_bottom_timer: 0.0,
         step_timer: 0.0,
         move_timer: 0.0
@@ -128,7 +128,7 @@ pub fn camera() -> Camera2dBundle {
     Camera2dBundle::default()
 }
 
-fn calculate_preview_transform(config: &Res<ConfigData>, i: i32) -> Transform {
+pub fn calculate_preview_transform(config: &Res<ConfigData>, i: i32) -> Transform {
     let x = config.game_config.tile_size * config.game_config.scale_factor * 8.0;
     let y = config.game_config.tile_size * config.game_config.scale_factor * (if i == 0 { 8.0 } else { 3.0 });
     Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))

@@ -9,7 +9,8 @@ pub struct KeysConfig {
     pub drop: String,
     pub rotate_left: String,
     pub rotate_right: String,
-    pub pause: String
+    pub pause: String,
+    pub restart: String
 }
 
 #[derive(Debug)]
@@ -42,7 +43,8 @@ pub fn load_config(path: String) -> ConfigData {
             drop: map["keyboard"]["drop"].clone().unwrap(),
             rotate_left: map["keyboard"]["rotate_left"].clone().unwrap(),
             rotate_right: map["keyboard"]["rotate_right"].clone().unwrap(),
-            pause: map["keyboard"]["pause"].clone().unwrap()
+            pause: map["keyboard"]["pause"].clone().unwrap(),
+            restart: map["keyboard"]["restart"].clone().unwrap(),
         },
         game_config: GameConfig {
             step_delay: map["game"]["step_delay"].clone().unwrap().parse().unwrap(),

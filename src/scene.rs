@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use bevy_ecs_tilemap::prelude::*;
 use rand::{thread_rng, Rng};
 
@@ -18,6 +19,7 @@ pub struct GameState {
     pub next_tetromino: (TetrominoType, usize),
     pub next_tetromino2: (TetrominoType, usize),
     pub current_position: IVec2,
+    pub tetromino_entities: HashMap<(u32, u32), Entity>,
     pub step_timer: f64,
     pub move_timer: f64,
     pub hit_bottom_timer: f64
@@ -118,6 +120,7 @@ pub fn init_game_state() -> GameState {
         next_tetromino: get_rand_tetromino(),
         next_tetromino2: get_rand_tetromino(),
         current_position: IVec2::new(4, 18),
+        tetromino_entities: HashMap::new(),
         hit_bottom_timer: 0.0,
         step_timer: 0.0,
         move_timer: 0.0

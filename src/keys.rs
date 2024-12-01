@@ -29,6 +29,7 @@ pub fn from_str(key_str: &str) -> KeyCode {
         "KeyY" => KeyCode::KeyY,
         "KeyZ" => KeyCode::KeyZ,
         "Space" => KeyCode::Space,
+        "Enter" => KeyCode::Enter,
         _ => panic!("Invalid key!")
     }
 }

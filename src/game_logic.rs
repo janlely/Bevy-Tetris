@@ -48,7 +48,7 @@ fn has_no_tile(
             x: position.x,
             y: position.y
         };
-        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19)
+        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19 && tile_pos.y < 25) //<25是为了应对i32转u32时溢出的问题
             || (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y >= 0 && tile_pos.y <= 19 && tile_storage.get(&tile_pos).is_none())
     })
 }
@@ -89,6 +89,7 @@ pub fn can_move_down(
     let down_most: Vec<UVec2> = state.current_tetromino.down_most_position().iter().map(|p| {
         UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y - 1) as u32)
     }).collect();
+    // println!("DEBUG: game_logic::can_move_down, down_most: {:?}", down_most);
     has_no_tile(&down_most, tile_storage)
 }
 
@@ -213,9 +214,9 @@ fn handler_key_event(
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.drop.as_str())) {
-        println!("DEBUG: game_logic:handler_key_even, drop");
+        println!("DEBUG: game_logic:handler_key_even, drop: {:?}", state.current_tetromino.get_position());
         while can_move_down(&state, &tile_storage) {
-            println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
+            // println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
             state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         }
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;

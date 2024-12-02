@@ -1,4 +1,4 @@
-use std::collections::{HashMap};
+use std::collections::{HashMap };
 use bevy::color::Color::Srgba;
 use bevy::color::palettes::css::RED;
 use bevy::input::ButtonInput;
@@ -481,11 +481,11 @@ pub fn draw_piece(
         panic!("不应该还有方块没有移动");
     }
 
-    if !has_no_tile(&positions_to_keep, &tile_storage) {
-        println!("DEBUG: game_logic::draw_piece, 目标位置不应该有方块: {:?}", positions_to_keep);
-        next_state.set(AppState::DEAD);
-        return;
-    }
+    // if !has_no_tile(&positions_to_keep, &tile_storage) {
+    //     println!("DEBUG: game_logic::draw_piece, 目标位置不应该有方块: {:?}", positions_to_keep);
+    //     next_state.set(AppState::DEAD);
+    //     return;
+    // }
 
     //如果positions不为空，说明还有方块需要新生成
     // println!("DEBUG: game_logic::draw_piece, 483");

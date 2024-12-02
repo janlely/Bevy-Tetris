@@ -48,7 +48,8 @@ fn has_no_tile(
             x: position.x,
             y: position.y
         };
-        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19) || tile_storage.get(&tile_pos).is_none()
+        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19)
+            || (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y >= 0 && tile_pos.y <= 19 && tile_storage.get(&tile_pos).is_none())
     })
 }
 
@@ -167,7 +168,12 @@ fn handler_key_event(
     mut next_state: ResMut<NextState<AppState>>,
     just_pressed: bool,
 ) {
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.pause.as_str())) {
+    let key_detector: Box<dyn Fn(KeyCode) -> bool>= if just_pressed {
+        Box::new(move |x| keyboard_input.just_pressed(x))
+    } else {
+        Box::new(move |x| keyboard_input.pressed(x))
+    };
+    if key_detector(keys::from_str(config.keys_config.pause.as_str())) {
         println!("DEBUG: game_logic:handler_key_even, pause");
         next_state.set(AppState::PAUSED);
         return;
@@ -175,38 +181,38 @@ fn handler_key_event(
 
     let tile_storage = query.single();
     let repeat_delay = if just_pressed {config.game_config.first_repeat_delay} else {config.game_config.repeat_delay};
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.left.as_str()))
+    if key_detector(keys::from_str(config.keys_config.left.as_str()))
         && can_move_left(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, left");
         state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.right.as_str()))
+    if key_detector(keys::from_str(config.keys_config.right.as_str()))
         && can_move_right(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, right");
         state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.down.as_str()))
+    if key_detector(keys::from_str(config.keys_config.down.as_str()))
         && can_move_down(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, down");
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
         state.hit_bottom_timer = 0.0;
     }
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_left.as_str()))
+    if key_detector(keys::from_str(config.keys_config.rotate_left.as_str()))
         && can_rotate_left(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, rotate left");
         state.current_tetromino.rotate_left();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_right.as_str()))
+    if key_detector(keys::from_str(config.keys_config.rotate_right.as_str()))
         && can_rotate_right(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, rotate right");
         state.current_tetromino.rotate_right();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
-    if keyboard_input.just_pressed(keys::from_str(config.keys_config.drop.as_str())) {
+    if key_detector(keys::from_str(config.keys_config.drop.as_str())) {
         println!("DEBUG: game_logic:handler_key_even, drop");
         while can_move_down(&state, &tile_storage) {
             println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
@@ -444,7 +450,7 @@ pub fn draw_piece(
         }
     }
     //原始位置的的方块应该已经全部都移动了
-    if (!state.tetromino_entities.is_empty()) {
+    if !state.tetromino_entities.is_empty() {
         panic!("不应该还有方块没有移动");
     }
 

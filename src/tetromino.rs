@@ -23,7 +23,7 @@ impl Tetromino {
     pub fn new(tetromino_type: TetrominoType, index: usize) -> Self {
         let positions = match tetromino_type {
             TetrominoType::I => [
-                [IVec2::new(-1,2), IVec2::new(0,2), IVec2::new(1,2), IVec2::new(2,2)],
+                [IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(1,1), IVec2::new(2,1)],
                 [IVec2::new(0,3), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
                 [IVec2::new(1,2), IVec2::new(0,2), IVec2::new(-1,2), IVec2::new(-2,2)],
                 [IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2), IVec2::new(0,3)],

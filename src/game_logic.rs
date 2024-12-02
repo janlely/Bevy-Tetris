@@ -1,5 +1,4 @@
-use std::collections::{HashMap, HashSet};
-use std::ops::{Deref};
+use std::collections::{HashMap};
 use bevy::color::Color::Srgba;
 use bevy::color::palettes::css::RED;
 use bevy::input::ButtonInput;
@@ -9,7 +8,6 @@ use crate::{config, keys, scene, tetromino};
 use bevy_ecs_tilemap::tiles::{TilePos, TileStorage};
 use bevy::prelude::*;
 use bevy::reflect::Map;
-// use bevy::reflect::List;
 use bevy_ecs_tilemap::prelude::*;
 
 #[derive(States, Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -67,10 +65,12 @@ fn can_rotate(
     i: usize,
 ) -> bool {
     let rotate = (state.current_tetromino.rotate + i) % 4;
+    let org_position = state.current_tetromino.get_position();
     let rotated_position= state.current_tetromino.get_position2(rotate)
-        .iter().map(|p| {
+        .iter().filter(|p| !org_position.contains(p)).map(|p| {
         UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y) as u32)
     }).collect::<Vec<UVec2>>();
+    println!("DEBUG: game_logic::can_rotate: {:?}", rotated_position);
     has_no_tile(&rotated_position, tile_storage)
 }
 
@@ -146,13 +146,13 @@ pub fn step_down(
     query: Query<&TileStorage>,
 ) {
     if state.step_timer >= config.game_config.step_delay {
-        println!("DEBUG: game_logic::step_down");
+        // println!("DEBUG: game_logic::step_down");
         let tile_storage = query.single();
         if !can_move_down(&state, tile_storage) {
             return;
         }
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
-        println!("DEBUG: helper::step_down, 125, y: {}", state.current_position.y);
+        // println!("DEBUG: helper::step_down, 125, y: {}", state.current_position.y);
         state.hit_bottom_timer = 0.0;
         state.step_timer = 0.0;
     }
@@ -176,39 +176,39 @@ fn handler_key_event(
     let tile_storage = query.single();
     let repeat_delay = if just_pressed {config.game_config.first_repeat_delay} else {config.game_config.repeat_delay};
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.left.as_str()))
-        && can_move_left(state.deref(), &tile_storage) {
+        && can_move_left(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, left");
         state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.right.as_str()))
-        && can_move_right(state.deref(), &tile_storage) {
+        && can_move_right(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, right");
         state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.down.as_str()))
-        && can_move_down(state.deref(), &tile_storage) {
+        && can_move_down(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, down");
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
         state.hit_bottom_timer = 0.0;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_left.as_str()))
-        && can_rotate_left(state.deref(), &tile_storage) {
+        && can_rotate_left(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, rotate left");
         state.current_tetromino.rotate_left();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.rotate_right.as_str()))
-        && can_rotate_right(state.deref(), &tile_storage) {
+        && can_rotate_right(&state, &tile_storage) {
         println!("DEBUG: game_logic:handler_key_even, rotate right");
         state.current_tetromino.rotate_right();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.drop.as_str())) {
         println!("DEBUG: game_logic:handler_key_even, drop");
-        while can_move_down(state.deref(), &tile_storage) {
+        while can_move_down(&state, &tile_storage) {
             println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
             state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         }
@@ -441,7 +441,7 @@ pub fn draw_piece(
     mut next_state: ResMut<NextState<AppState>>,
     config: Res<config::ConfigData>,
 ) {
-    println!("DEBUG: helper::draw_piece, x: {}, y: {}", state.current_position.x, state.current_position.y);
+    // println!("DEBUG: helper::draw_piece, x: {}, y: {}", state.current_position.x, state.current_position.y);
     let mut tile_storage = query.single_mut();
 
     //获取方块移动的目标位置
@@ -488,7 +488,7 @@ pub fn draw_piece(
     }
 
     //如果positions不为空，说明还有方块需要新生成
-    println!("DEBUG: game_logic::draw_piece, 483");
+    // println!("DEBUG: game_logic::draw_piece, 483");
     for pos in positions_to_keep.iter() {
         let tile_pos = TilePos {
             x: pos.x,
@@ -508,7 +508,7 @@ pub fn draw_piece(
         // println!("DEBUG: game_logic::draw_piece, draw new piece");
         tile_storage.set(&tile_pos, tile_entity);
     }
-    println!("DEBUG: game_logic::draw_piece, 503");
+    // println!("DEBUG: game_logic::draw_piece, 503");
 
     //判断游戏是否结束
     if !hit_bottom2(&state, &tile_storage, config) {
@@ -518,13 +518,13 @@ pub fn draw_piece(
     // let position = state.current_tetromino.down_most_position().iter().map(|p| {
     //     IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
     // }).collect::<Vec<IVec2>>();
-    println!("DEBUG: game_logic::draw_piece, 513");
+    // println!("DEBUG: game_logic::draw_piece, 513");
     if state.current_tetromino.get_position().iter().any(|p| p.y > 19) {
         println!("DEBUG: game_logic::draw_piece, DEAD");
         next_state.set(AppState::DEAD);
         return;
     }
-    println!("DEBUG: game_logic::draw_piece, 517");
+    // println!("DEBUG: game_logic::draw_piece, 517");
 }
 
 pub fn init_scene(

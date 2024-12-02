@@ -20,6 +20,8 @@ fn main() {
     }
     #[cfg(target_os = "windows")]
     {
+        use bevy::render::RenderPlugin;
+        use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
         app.add_plugins(DefaultPlugins.set(RenderPlugin{
             render_creation: RenderCreation::Automatic(WgpuSettings{
                 backends: Some(Backends::VULKAN),

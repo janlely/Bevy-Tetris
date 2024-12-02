@@ -41,14 +41,14 @@ pub fn can_move_right(
 fn has_no_tile(
     position: &[UVec2],
     // state: &scene::GameState,
-    tile_storage: &TileStorage
+    tile_storage: &TileStorage,
 ) -> bool {
     position.iter().all(|position| {
         let tile_pos = TilePos {
             x: position.x,
             y: position.y
         };
-        tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y >= 0 && tile_pos.y <= 19 && tile_storage.get(&tile_pos).is_none()
+        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19) || tile_storage.get(&tile_pos).is_none()
     })
 }
 
@@ -245,12 +245,8 @@ pub fn handler_key_repeat(
 pub fn clear_lines(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
-    config: Res<config::ConfigData>,
     mut query: Query<&mut TileStorage>,
     mut query2: Query<&mut TilePos>,
-    // time: Res<Time>,
-    // tetrominos: Res<Tetrominos>,
-    // entity_container: ResMut<EntityContainer>,
 ) {
 
     let mut tile_storage = query.single_mut();
@@ -315,42 +311,8 @@ pub fn clear_lines(
             }
         }
     }
-
-    // spawn(commands, state, config, time, tetrominos, entity_container);
 }
 
-// fn move_line_down(
-    // commands: &mut Commands,
-    // up: u32,
-    // down: u32,
-    // tile_storage: &mut TileStorage,
-    // entity_container: Res<EntityContainer>,
-    // mut query: Query<&mut TilePos>,
-// ) {
-    // for i in 0..10 {
-    //     let tile_pos_up = TilePos {
-    //         x: i,
-    //         y: up
-    //     };
-    //     let tile_pos_down= TilePos {
-    //         x: i,
-    //         y: down
-    //     };
-
-        // if let Some(tile_entity) = tile_storage.get(&tile_pos_up) {
-        //     let tile_entity = commands
-        //         .spawn(TileBundle {
-        //             position: tile_pos_down,
-        //             tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
-        //             texture_index: TileTextureIndex(state.current_tetromino.index as u32),
-        //             ..Default::default()
-        //         })
-        //         .id();
-        //     tile_storage.set(&tile_pos_down, tile_entity);
-        //     tile_storage.remove(&tile_pos_up);
-        // }
-    // }
-// }
 
 fn clear_line(
     commands: &mut Commands,
@@ -443,11 +405,16 @@ pub fn draw_piece(
 ) {
     // println!("DEBUG: helper::draw_piece, x: {}, y: {}", state.current_position.x, state.current_position.y);
     let mut tile_storage = query.single_mut();
-
     //获取方块移动的目标位置
     let positions = state.current_tetromino.get_position().iter().map(|p| {
         UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y) as u32)
     }).collect::<Vec<UVec2>>();
+
+    //spawn出来的方块必须不能有占位
+    if state.tetromino_entities.is_empty() && !has_no_tile(&positions, &tile_storage) {
+        next_state.set(AppState::DEAD);
+        return;
+    }
 
     //原始与位置与目标位置重叠，则无需移动，删除这些重叠的配对
     let mut positions_to_keep = vec![];
@@ -481,12 +448,6 @@ pub fn draw_piece(
         panic!("不应该还有方块没有移动");
     }
 
-    // if !has_no_tile(&positions_to_keep, &tile_storage) {
-    //     println!("DEBUG: game_logic::draw_piece, 目标位置不应该有方块: {:?}", positions_to_keep);
-    //     next_state.set(AppState::DEAD);
-    //     return;
-    // }
-
     //如果positions不为空，说明还有方块需要新生成
     // println!("DEBUG: game_logic::draw_piece, 483");
     for pos in positions_to_keep.iter() {
@@ -508,23 +469,6 @@ pub fn draw_piece(
         // println!("DEBUG: game_logic::draw_piece, draw new piece");
         tile_storage.set(&tile_pos, tile_entity);
     }
-    // println!("DEBUG: game_logic::draw_piece, 503");
-
-    //判断游戏是否结束
-    if !hit_bottom2(&state, &tile_storage, config) {
-        return;
-    }
-    // println!("DEBUG: game_logic::draw_piece, 509");
-    // let position = state.current_tetromino.down_most_position().iter().map(|p| {
-    //     IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
-    // }).collect::<Vec<IVec2>>();
-    // println!("DEBUG: game_logic::draw_piece, 513");
-    if state.current_tetromino.get_position().iter().any(|p| p.y > 19) {
-        println!("DEBUG: game_logic::draw_piece, DEAD");
-        next_state.set(AppState::DEAD);
-        return;
-    }
-    // println!("DEBUG: game_logic::draw_piece, 517");
 }
 
 pub fn init_scene(

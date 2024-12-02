@@ -23,8 +23,8 @@ pub fn can_move_left(
     tile_storage: &TileStorage
 ) -> bool {
     let left_most  = state.current_tetromino.left_most_position().iter().map(|p| {
-        UVec2::new((p.x + state.current_position.x - 1) as u32 , (p.y + state.current_position.y) as u32)
-    }).collect::<Vec<UVec2>>();
+        IVec2::new(p.x + state.current_position.x - 1 , p.y + state.current_position.y)
+    }).collect::<Vec<IVec2>>();
     has_no_tile(&left_most, tile_storage)
 }
 
@@ -33,23 +33,19 @@ pub fn can_move_right(
     tile_storage: &TileStorage
 ) -> bool {
     let right_most = state.current_tetromino.right_most_position().iter().map(|p| {
-        UVec2::new((p.x + state.current_position.x + 1) as u32, (p.y + state.current_position.y) as u32)
-    }).collect::<Vec<UVec2>>();
+        IVec2::new(p.x + state.current_position.x + 1, p.y + state.current_position.y)
+    }).collect::<Vec<IVec2>>();
     has_no_tile(&right_most, tile_storage)
 }
 
 fn has_no_tile(
-    position: &[UVec2],
+    position: &[IVec2],
     // state: &scene::GameState,
     tile_storage: &TileStorage,
 ) -> bool {
-    position.iter().all(|position| {
-        let tile_pos = TilePos {
-            x: position.x,
-            y: position.y
-        };
-        (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y > 19 && tile_pos.y < 25) //<25是为了应对i32转u32时溢出的问题
-            || (tile_pos.x >= 0 && tile_pos.x <= 9 && tile_pos.y >= 0 && tile_pos.y <= 19 && tile_storage.get(&tile_pos).is_none())
+    position.iter().all(|p| {
+        (p.x >= 0 && p.x <= 9 && p.y > 19)
+            || (p.x >= 0 && p.x <= 9 && p.y >= 0 && p.y <= 19 && tile_storage.get(&TilePos{x: p.x as u32, y: p.y as u32}).is_none())
     })
 }
 
@@ -69,8 +65,8 @@ fn can_rotate(
     let org_position = state.current_tetromino.get_position();
     let rotated_position= state.current_tetromino.get_position2(rotate)
         .iter().filter(|p| !org_position.contains(p)).map(|p| {
-        UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y) as u32)
-    }).collect::<Vec<UVec2>>();
+        IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
+    }).collect::<Vec<IVec2>>();
     println!("DEBUG: game_logic::can_rotate: {:?}", rotated_position);
     has_no_tile(&rotated_position, tile_storage)
 }
@@ -86,8 +82,8 @@ pub fn can_move_down(
     state: &scene::GameState,
     tile_storage: &TileStorage
 ) -> bool {
-    let down_most: Vec<UVec2> = state.current_tetromino.down_most_position().iter().map(|p| {
-        UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y - 1) as u32)
+    let down_most: Vec<IVec2> = state.current_tetromino.down_most_position().iter().map(|p| {
+        IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y - 1)
     }).collect();
     // println!("DEBUG: game_logic::can_move_down, down_most: {:?}", down_most);
     has_no_tile(&down_most, tile_storage)
@@ -414,8 +410,8 @@ pub fn draw_piece(
     let mut tile_storage = query.single_mut();
     //获取方块移动的目标位置
     let positions = state.current_tetromino.get_position().iter().map(|p| {
-        UVec2::new((p.x + state.current_position.x) as u32, (p.y + state.current_position.y) as u32)
-    }).collect::<Vec<UVec2>>();
+        IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
+    }).collect::<Vec<IVec2>>();
 
     //spawn出来的方块必须不能有占位
     if state.tetromino_entities.is_empty() && !has_no_tile(&positions, &tile_storage) {
@@ -426,7 +422,7 @@ pub fn draw_piece(
     //原始与位置与目标位置重叠，则无需移动，删除这些重叠的配对
     let mut positions_to_keep = vec![];
     for position in positions.iter() {
-        let pos = &(position.x, position.y);
+        let pos = &(position.x as u32, position.y as u32);
         //目标位置可以在原始位置中找到，说明不需要移动
         if state.tetromino_entities.contains_key(pos) {
             state.tetromino_entities.remove(pos);
@@ -439,16 +435,21 @@ pub fn draw_piece(
     }
 
     //把原始位置的方块移动到目标位置
+    let mut count = 0;
     for mut pos in p_query.iter_mut() {
         if state.tetromino_entities.contains_key(&(pos.x, pos.y)) && !positions_to_keep.is_empty(){
             // println!("DEBUG: game_logic::draw_piece, move tiles");
             let old_pos = *pos;
             let position = positions_to_keep.pop().unwrap();
-            pos.x = position.x;
-            pos.y = position.y;
+            pos.x = position.x as u32;
+            pos.y = position.y as u32;
             tile_storage.remove(&old_pos);
             tile_storage.set(&&pos, state.tetromino_entities.remove(&(old_pos.x, old_pos.y)).unwrap());
+            count += 1;
         }
+    }
+    if count > 0 {
+        println!("DEBUG: moved: {}", count);
     }
     //原始位置的的方块应该已经全部都移动了
     if !state.tetromino_entities.is_empty() {
@@ -459,8 +460,8 @@ pub fn draw_piece(
     // println!("DEBUG: game_logic::draw_piece, 483");
     for pos in positions_to_keep.iter() {
         let tile_pos = TilePos {
-            x: pos.x,
-            y: pos.y
+            x: pos.x as u32,
+            y: pos.y as u32
         };
         if tile_pos.x >= 10 || tile_pos.y >= 20 {
             continue;

@@ -40,12 +40,12 @@ pub fn can_move_right(
 
 fn has_no_tile(
     position: &[IVec2],
-    // state: &scene::GameState,
     tile_storage: &TileStorage,
 ) -> bool {
     position.iter().all(|p| {
-        (p.x >= 0 && p.x <= 9 && p.y > 19)
-            || (p.x >= 0 && p.x <= 9 && p.y >= 0 && p.y <= 19 && tile_storage.get(&TilePos{x: p.x as u32, y: p.y as u32}).is_none())
+        let above = p.x >= 0 && p.x <= 9 && p.y > 19;
+        let in_and_empty = p.x >= 0 && p.x <= 9 && p.y >= 0 && p.y <= 19 && tile_storage.get(&TilePos{x: p.x as u32, y: p.y as u32}).is_none();
+        above || in_and_empty
     })
 }
 
@@ -370,7 +370,7 @@ fn is_full_line(
     true
 }
 
-//删除游戏方块
+//删除游戏方块，实则仅记录方块原始位置，在后面draw_piece时进行方块移动
 pub fn remove_piece(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
@@ -404,7 +404,6 @@ pub fn draw_piece(
     mut query: Query<&mut TileStorage>,
     mut p_query: Query<&mut TilePos>,
     mut next_state: ResMut<NextState<AppState>>,
-    config: Res<config::ConfigData>,
 ) {
     // println!("DEBUG: helper::draw_piece, x: {}, y: {}", state.current_position.x, state.current_position.y);
     let mut tile_storage = query.single_mut();
@@ -435,7 +434,9 @@ pub fn draw_piece(
     }
 
     //把原始位置的方块移动到目标位置
+    //********DEBUG*******
     let mut count = 0;
+    //********DEBUG*******
     for mut pos in p_query.iter_mut() {
         if state.tetromino_entities.contains_key(&(pos.x, pos.y)) && !positions_to_keep.is_empty(){
             // println!("DEBUG: game_logic::draw_piece, move tiles");
@@ -448,6 +449,7 @@ pub fn draw_piece(
             count += 1;
         }
     }
+    //********DEBUG*******
     if count > 0 {
         println!("DEBUG: moved: {}", count);
     }
@@ -524,11 +526,7 @@ pub fn hit_bottom(
     config: Res<config::ConfigData>,
 ) -> bool {
     let tile_storage = query.single();
-    let hit = hit_bottom2(&state, tile_storage, config);
-    if hit {
-        println!("DEBUG: game_logic::hit_bottom: {}", hit);
-    }
-    hit
+    hit_bottom2(&state, tile_storage, config)
 }
 
 pub fn hit_bottom2 (

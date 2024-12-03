@@ -451,7 +451,7 @@ pub fn draw_piece(
     }
     //********DEBUG*******
     if count > 0 {
-        println!("DEBUG: moved: {}", count);
+        println!("DEBUG: move count: {}", count);
     }
     //原始位置的的方块应该已经全部都移动了
     if !state.tetromino_entities.is_empty() {

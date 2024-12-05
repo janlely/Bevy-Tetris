@@ -13,8 +13,8 @@ use crate::tetromino::*;
 
 #[derive(Resource, Debug)]
 pub struct GameState {
-    pub alive: bool,
-    pub paused: bool,
+    // pub alive: bool,
+    // pub paused: bool,
     pub current_tetromino: Tetromino,
     pub next_tetromino: (TetrominoType, usize),
     pub next_tetromino2: (TetrominoType, usize),
@@ -114,8 +114,8 @@ pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoTyp
 pub fn init_game_state() -> GameState {
     let t = get_rand_tetromino();
     GameState {
-        alive: true,
-        paused: false,
+        // alive: true,
+        // paused: false,
         current_tetromino: Tetromino::new(t.0, t.1),
         next_tetromino: get_rand_tetromino(),
         next_tetromino2: get_rand_tetromino(),
@@ -169,7 +169,7 @@ pub fn main_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> 
 
 pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
 
-    println!("DEBUG: main_tilemap, 169");
+    // println!("DEBUG: main_tilemap, 169");
     let texture_handle: Handle<Image> = asset_server.load(config.game_config.tiles_path.clone());
     let map_size = TilemapSize { x: 10, y: 20 };
     let tile_storage = TileStorage::empty(map_size);
@@ -177,7 +177,7 @@ pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -
     let tile_size = TilemapTileSize { x: config.game_config.tile_size, y: config.game_config.tile_size };
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
-    println!("DEBUG: main_tilemap, 177");
+    // println!("DEBUG: main_tilemap, 177");
     TilemapBundle {
         grid_size,
         map_type,

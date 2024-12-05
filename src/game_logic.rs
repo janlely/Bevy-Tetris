@@ -46,11 +46,12 @@ fn has_no_tile(
     position.iter().all(|p| {
         let above = p.x >= 0 && p.x <= 9 && p.y > 19;
         let in_and_empty = p.x >= 0 && p.x <= 9 && p.y >= 0 && p.y <= 19 && tile_storage.get(&TilePos{x: p.x as u32, y: p.y as u32}).is_none();
-        let res = above || in_and_empty;
-        if !res {
-            println!("DEBUG: x: {}, y {} above: {}, in_and_empty: {}", p.x, p.y, above, in_and_empty);
-        }
-        res
+        above || in_and_empty
+        // let res = above || in_and_empty;
+        // if !res {
+        //     println!("DEBUG: x: {}, y {} above: {}, in_and_empty: {}", p.x, p.y, above, in_and_empty);
+        // }
+        // res
 
     })
 }
@@ -73,7 +74,7 @@ fn can_rotate(
         .iter().filter(|p| !org_position.contains(p)).map(|p| {
         IVec2::new(p.x + state.current_position.x, p.y + state.current_position.y)
     }).collect::<Vec<IVec2>>();
-    println!("DEBUG: game_logic::can_rotate: {:?}", rotated_position);
+    // println!("DEBUG: game_logic::can_rotate: {:?}", rotated_position);
     has_no_tile(&rotated_position, tile_storage)
 }
 
@@ -114,19 +115,19 @@ pub fn spawn(
     tetrominos: Res<Tetrominos>,
     mut entity_container: ResMut<EntityContainer>,
 ) {
-    println!("DEBUG: helper::spawn, 97");
+    // println!("DEBUG: helper::spawn, 97");
     //重置方块位置，设置成最上面
     state.current_position = IVec2::new(4, 18);
     //使用预览区1的方块创建游戏方块
-    println!("DEBUG: before spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
+    // println!("DEBUG: before spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
     state.current_tetromino = tetromino::Tetromino::new(state.next_tetromino.0, state.next_tetromino.1);
-    println!("DEBUG: after spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
+    // println!("DEBUG: after spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
 
     //预览区2的方块提升到预览区1，预览区2生成新方块
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
-    println!("DEBUG: next1, type: {:?}, index: {}", state.next_tetromino.0, state.next_tetromino.1);
-    println!("DEBUG: next2, type: {:?}, index: {}", state.next_tetromino2.0, state.next_tetromino2.1);
+    // println!("DEBUG: next1, type: {:?}, index: {}", state.next_tetromino.0, state.next_tetromino.1);
+    // println!("DEBUG: next2, type: {:?}, index: {}", state.next_tetromino2.0, state.next_tetromino2.1);
     //删除预览区的方块精灵
     if let Some(preive1_entity) = entity_container.preview1 {
         commands.entity(preive1_entity).despawn_recursive();
@@ -146,6 +147,10 @@ pub fn spawn(
     //重置计时器
     state.step_timer = 0.0;
     state.move_timer = time.elapsed_seconds_f64() + config.game_config.first_repeat_delay;
+    println!("DEBUG: spawn: now: {:?}, next1: {:?}, next2: {:?}",
+             state.current_tetromino.tetromino_type,
+             state.next_tetromino.0,
+             state.next_tetromino2.0);
 }
 
 pub fn step_down(
@@ -181,7 +186,7 @@ fn handler_key_event(
     } else {
         Box::new(move |x| keyboard_input.pressed(x))
     };
-    if key_detector(keys::from_str(config.keys_config.pause.as_str())) {
+    if just_pressed && key_detector(keys::from_str(config.keys_config.pause.as_str())) {
         println!("DEBUG: game_logic:handler_key_even, pause");
         next_state.set(AppState::PAUSED);
         return;
@@ -191,37 +196,37 @@ fn handler_key_event(
     let repeat_delay = if just_pressed {config.game_config.first_repeat_delay} else {config.game_config.repeat_delay};
     if key_detector(keys::from_str(config.keys_config.left.as_str()))
         && can_move_left(&state, &tile_storage) {
-        println!("DEBUG: game_logic:handler_key_even, left");
+        // println!("DEBUG: game_logic:handler_key_even, left");
         state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.right.as_str()))
         && can_move_right(&state, &tile_storage) {
-        println!("DEBUG: game_logic:handler_key_even, right");
+        // println!("DEBUG: game_logic:handler_key_even, right");
         state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.down.as_str()))
         && can_move_down(&state, &tile_storage) {
-        println!("DEBUG: game_logic:handler_key_even, down");
+        // println!("DEBUG: game_logic:handler_key_even, down");
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
         state.hit_bottom_timer = 0.0;
     }
     if key_detector(keys::from_str(config.keys_config.rotate_left.as_str()))
         && can_rotate_left(&state, &tile_storage) {
-        println!("DEBUG: game_logic:handler_key_even, rotate left");
+        // println!("DEBUG: game_logic:handler_key_even, rotate left");
         state.current_tetromino.rotate_left();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.rotate_right.as_str()))
         && can_rotate_right(&state, &tile_storage) {
-        println!("DEBUG: game_logic:handler_key_even, rotate right");
+        // println!("DEBUG: game_logic:handler_key_even, rotate right");
         state.current_tetromino.rotate_right();
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.drop.as_str())) {
-        println!("DEBUG: game_logic:handler_key_even, drop: {:?}", state.current_tetromino.get_position());
+        // println!("DEBUG: game_logic:handler_key_even, drop: {:?}", state.current_tetromino.get_position());
         while can_move_down(&state, &tile_storage) {
             // println!("DEBUG: helper::handler_key_event, 180, y: {}", state.current_position.y);
             state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
@@ -267,29 +272,29 @@ pub fn clear_lines(
 
 
     // println!("DEBUG: helper::clear_lines, 224, {:?}, {:?}", state.current_tetromino.get_position(), state.current_position);
-    if state.current_tetromino.get_position().iter().any(|p| p.y + state.current_position.y > 19) {
-        println!("DEBUG: helper::clear_lines, 226");
-        state.alive = false;
-        return;
-    }
+    // if state.current_tetromino.get_position().iter().any(|p| p.y + state.current_position.y > 19) {
+    //     println!("DEBUG: helper::clear_lines, 226");
+    //     state.alive = false;
+    //     return;
+    // }
     let Some(lowest_y) = state.current_tetromino.down_most_position().iter().map(|p| p.y + state.current_position.y).min() else {
         println!("DEBUG: helper::clear_lines, 225, state: {:?}", state);
         panic!("should hive lowest.y");
     };
 
-    println!("DEBUG: helper::clear_lines, 232, lowest_y: {}", lowest_y);
+    // println!("DEBUG: helper::clear_lines, 232, lowest_y: {}", lowest_y);
 
     //消除满行
     let mut line_to_remove = lowest_y as u32;
     let mut lines_to_remove = vec![];
     let mut count = 0;
     for _i in 0..4 {
-        if line_to_remove < 18 && is_full_line(line_to_remove as u32, &tile_storage) {
+        if line_to_remove < 18 && is_full_line(line_to_remove, &tile_storage) {
             count += 1;
             lines_to_remove.push(line_to_remove);
             //clear_line
-            println!("DEBUG: helper::clear_lines, 241, clean_line");
-            clear_line(&mut commands, line_to_remove as u32, tile_storage.as_mut());
+            // println!("DEBUG: helper::clear_lines, 241, clean_line");
+            clear_line(&mut commands, line_to_remove, tile_storage.as_mut());
         }
         line_to_remove += 1;
     }
@@ -299,6 +304,7 @@ pub fn clear_lines(
         return;
     }
 
+    println!("DEBUG: lines_to_remove: {:?}", lines_to_remove);
     let mut first_line = lines_to_remove[0];
     // let mut swap: Vec<(u32, u32)> = vec![];
     let mut swap = HashMap::new();
@@ -341,6 +347,8 @@ fn clear_line(
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             commands.entity(tile_entity).despawn();
             tile_storage.remove(&tile_pos);
+        } else {
+            panic!("DEBUG: no enity. x: {}, y:{}", i, line);
         }
     }
 }
@@ -425,12 +433,12 @@ pub fn draw_piece(
 
     //spawn出来的方块必须不能有占位
     if state.tetromino_entities.is_empty() && !has_no_tile(&positions, &tile_storage) {
-        println!("DEBUG: type: {:?}, index: {},  position: {:?}", state.current_tetromino.tetromino_type, state.current_tetromino.index , positions);
-        println!("DEBUG: empyt: {}, has_no_tile: {}", state.tetromino_entities.is_empty(), has_no_tile(&positions, &tile_storage));
+        // println!("DEBUG: type: {:?}, index: {},  position: {:?}", state.current_tetromino.tetromino_type, state.current_tetromino.index , positions);
+        // println!("DEBUG: empyt: {}, has_no_tile: {}", state.tetromino_entities.is_empty(), has_no_tile(&positions, &tile_storage));
         next_state.set(AppState::DEAD);
         return;
     }
-    println!("DEBUG: map: {:?}", state.tetromino_entities);
+    // println!("DEBUG: map: {:?}", state.tetromino_entities);
 
     //原始与位置与目标位置重叠，则无需移动，删除这些重叠的配对
     let mut positions_to_keep = vec![];
@@ -446,12 +454,9 @@ pub fn draw_piece(
             }
         }
     }
-    println!("DEBUG: p2k: {:?}", positions_to_keep);
+    // println!("DEBUG: p2k: {:?}", positions_to_keep);
 
     //把原始位置的方块移动到目标位置
-    //********DEBUG*******
-    let mut count = 0;
-    //********DEBUG*******
     for mut pos in p_query.iter_mut() {
         if state.tetromino_entities.contains_key(&(pos.x, pos.y)) && !positions_to_keep.is_empty(){
             // println!("DEBUG: game_logic::draw_piece, move tiles");
@@ -461,26 +466,13 @@ pub fn draw_piece(
             pos.y = position.y as u32;
             tile_storage.remove(&old_pos);
             tile_storage.set(&&pos, state.tetromino_entities.remove(&(old_pos.x, old_pos.y)).unwrap());
-            count += 1;
         }
-    }
-    //********DEBUG*******
-    if count > 0 {
-        println!("DEBUG: move count: {}", count);
     }
     //原始位置的的方块应该已经全部都移动了
     for (key,entity) in state.tetromino_entities.drain() {
         commands.entity(entity).despawn();
         tile_storage.remove(&TilePos{x: key.0, y: key.1});
     }
-    // if !state.tetromino_entities.is_empty() {
-    //     println!("DEBUG: type: {:?}, positions: {:?}, p2k: {:?}",
-    //              state.current_tetromino.tetromino_type,
-    //              state.current_tetromino.get_position(),
-    //              positions_to_keep
-    //     );
-    //     panic!("不应该还有方块没有移动");
-    // }
 
     //如果positions不为空，说明还有方块需要新生成
     // println!("DEBUG: game_logic::draw_piece, 483");
@@ -503,7 +495,6 @@ pub fn draw_piece(
         // println!("DEBUG: game_logic::draw_piece, draw new piece");
         tile_storage.set(&tile_pos, tile_entity);
     }
-    assert_tile_valid(&tile_storage, p_query.iter().collect().as_slice());
 }
 
 pub fn init_scene(
@@ -540,10 +531,10 @@ pub fn init_scene(
     entity_container.tilemap = Some(tilemap_entity);
 }
 
-pub fn should_run(state: Res<scene::GameState>) -> bool {
-    // If our barrier isn't ready, return early and wait another cycle
-    !state.paused && state.alive
-}
+// pub fn should_run(state: Res<scene::GameState>) -> bool {
+//     // If our barrier isn't ready, return early and wait another cycle
+//     !state.paused && state.alive
+// }
 
 pub fn hit_bottom(
     state: Res<scene::GameState>,
@@ -569,6 +560,7 @@ pub fn resume (
 ) {
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.pause.as_str())) {
         // state.paused = !state.paused;
+        println!("DEBUG: resumed");
         next_state.set(AppState::RUNNING);
     }
 }
@@ -578,9 +570,9 @@ pub fn game_over(
     mut commands: Commands,
     state: ResMut<scene::GameState>,
 ) {
-    if state.alive {
-        return;
-    }
+    // if state.alive {
+    //     return;
+    // }
 
     let text_style = TextStyle {
         color: Srgba(RED),
@@ -644,4 +636,25 @@ fn assert_tile_valid(
             panic!("DEBUG: assert_tile_valid: tile not found, x: {}, y: {}", pos.x, pos.y);
         }
     }
+}
+
+pub fn print_board(
+    query: Query<&TileStorage>,
+    p_query: Query<&TilePos>,
+) {
+    for pos in p_query.iter() {
+        print!("({},{}) ", pos.x, pos.y);
+    }
+    let tile_storage = query.single();
+    for y in (0..20).rev() {
+        for x in 0..10 {
+            if tile_storage.get(&TilePos{x: x as u32, y: y as u32}).is_some() {
+                print!("*");
+            } else {
+                print!(".");
+            }
+        }
+        print!("\n")
+    }
+    print!("\n\n\n")
 }

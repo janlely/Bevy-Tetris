@@ -46,6 +46,7 @@ fn main() {
         game_logic::draw_piece,
         (
             game_logic::clear_lines,
+            game_logic::print_board,
             game_logic::spawn,
             game_logic::draw_piece,
         ).chain().run_if(game_logic::hit_bottom),
@@ -60,7 +61,6 @@ mod tests {
     use std::time::Duration;
     use super::*;
     use bevy::prelude::*;
-    use bevy::state::app::StatesPlugin;
     use crate::game_logic::*;
 
     #[test]

@@ -1,4 +1,5 @@
 use std::collections::{HashMap };
+use std::os::macos::raw::stat;
 use bevy::color::Color::Srgba;
 use bevy::color::palettes::css::RED;
 use bevy::input::ButtonInput;
@@ -45,7 +46,12 @@ fn has_no_tile(
     position.iter().all(|p| {
         let above = p.x >= 0 && p.x <= 9 && p.y > 19;
         let in_and_empty = p.x >= 0 && p.x <= 9 && p.y >= 0 && p.y <= 19 && tile_storage.get(&TilePos{x: p.x as u32, y: p.y as u32}).is_none();
-        above || in_and_empty
+        let res = above || in_and_empty;
+        if !res {
+            println!("DEBUG: x: {}, y {} above: {}, in_and_empty: {}", p.x, p.y, above, in_and_empty);
+        }
+        res
+
     })
 }
 
@@ -112,10 +118,15 @@ pub fn spawn(
     //重置方块位置，设置成最上面
     state.current_position = IVec2::new(4, 18);
     //使用预览区1的方块创建游戏方块
+    println!("DEBUG: before spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
     state.current_tetromino = tetromino::Tetromino::new(state.next_tetromino.0, state.next_tetromino.1);
+    println!("DEBUG: after spawned, type: {:?}, index: {}", state.current_tetromino.tetromino_type, state.current_tetromino.index);
+
     //预览区2的方块提升到预览区1，预览区2生成新方块
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
+    println!("DEBUG: next1, type: {:?}, index: {}", state.next_tetromino.0, state.next_tetromino.1);
+    println!("DEBUG: next2, type: {:?}, index: {}", state.next_tetromino2.0, state.next_tetromino2.1);
     //删除预览区的方块精灵
     if let Some(preive1_entity) = entity_container.preview1 {
         commands.entity(preive1_entity).despawn_recursive();
@@ -414,9 +425,12 @@ pub fn draw_piece(
 
     //spawn出来的方块必须不能有占位
     if state.tetromino_entities.is_empty() && !has_no_tile(&positions, &tile_storage) {
+        println!("DEBUG: type: {:?}, index: {},  position: {:?}", state.current_tetromino.tetromino_type, state.current_tetromino.index , positions);
+        println!("DEBUG: empyt: {}, has_no_tile: {}", state.tetromino_entities.is_empty(), has_no_tile(&positions, &tile_storage));
         next_state.set(AppState::DEAD);
         return;
     }
+    println!("DEBUG: map: {:?}", state.tetromino_entities);
 
     //原始与位置与目标位置重叠，则无需移动，删除这些重叠的配对
     let mut positions_to_keep = vec![];
@@ -432,6 +446,7 @@ pub fn draw_piece(
             }
         }
     }
+    println!("DEBUG: p2k: {:?}", positions_to_keep);
 
     //把原始位置的方块移动到目标位置
     //********DEBUG*******
@@ -454,9 +469,18 @@ pub fn draw_piece(
         println!("DEBUG: move count: {}", count);
     }
     //原始位置的的方块应该已经全部都移动了
-    if !state.tetromino_entities.is_empty() {
-        panic!("不应该还有方块没有移动");
+    for (key,entity) in state.tetromino_entities.drain() {
+        commands.entity(entity).despawn();
+        tile_storage.remove(&TilePos{x: key.0, y: key.1});
     }
+    // if !state.tetromino_entities.is_empty() {
+    //     println!("DEBUG: type: {:?}, positions: {:?}, p2k: {:?}",
+    //              state.current_tetromino.tetromino_type,
+    //              state.current_tetromino.get_position(),
+    //              positions_to_keep
+    //     );
+    //     panic!("不应该还有方块没有移动");
+    // }
 
     //如果positions不为空，说明还有方块需要新生成
     // println!("DEBUG: game_logic::draw_piece, 483");
@@ -479,6 +503,7 @@ pub fn draw_piece(
         // println!("DEBUG: game_logic::draw_piece, draw new piece");
         tile_storage.set(&tile_pos, tile_entity);
     }
+    assert_tile_valid(&tile_storage, p_query.iter().collect().as_slice());
 }
 
 pub fn init_scene(
@@ -609,3 +634,14 @@ pub fn update_timer(
     state.step_timer += time.delta_seconds_f64();
 }
 
+
+fn assert_tile_valid(
+    tile_storage: &TileStorage,
+    tile_pos: &[TilePos]
+) {
+    for pos in tile_pos {
+        if tile_storage.get(pos).is_none() {
+            panic!("DEBUG: assert_tile_valid: tile not found, x: {}, y: {}", pos.x, pos.y);
+        }
+    }
+}

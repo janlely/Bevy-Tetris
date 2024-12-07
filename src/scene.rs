@@ -1,15 +1,27 @@
+use std::collections::HashSet;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
-use bevy_ecs_tilemap::prelude::*;
+// use bevy_ecs_tilemap::prelude::*;
 use rand::{thread_rng, Rng};
 
 use crate::config::*;
+use crate::game_logic::Tetrominos;
 use crate::tetromino::*;
 
 // #[derive(Default, Component)]
 // pub struct LastUpdate {
 //     value: f64,
 // }
+
+#[derive(Component, Debug)]
+pub struct FstPreview;
+
+// #[derive(Component, Debug)]
+// pub struct ImageHandlers {
+//     tiles: [Handle<Image>; 7],
+// }
+#[derive(Component, Debug)]
+pub struct SndPreview;
 
 #[derive(Resource, Debug)]
 pub struct GameState {
@@ -19,7 +31,7 @@ pub struct GameState {
     pub next_tetromino: (TetrominoType, usize),
     pub next_tetromino2: (TetrominoType, usize),
     pub current_position: IVec2,
-    pub tetromino_entities: HashMap<(u32, u32), Entity>,
+    pub tetromino_entities: HashSet<(u32, u32)>,
     pub step_timer: f64,
     pub move_timer: f64,
     pub hit_bottom_timer: f64
@@ -40,6 +52,75 @@ pub fn get_rand_tetromino() -> (TetrominoType, usize) {
     }
 }
 
+pub fn make_tile(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> SpriteBundle {
+    match tetromino_type {
+        TetrominoType::I => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Blue.png"),
+                ..default()
+            }
+        },
+        TetrominoType::J => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Cyan.png"),
+                ..default()
+            }
+        },
+        TetrominoType::L => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Green.png"),
+                ..default()
+            }
+        },
+        TetrominoType::O => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Orange.png"),
+                ..default()
+            }
+        },
+        TetrominoType::S => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Purple.png"),
+                ..default()
+            }
+        },
+        TetrominoType::T => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Red.png"),
+                ..default()
+            }
+        },
+        TetrominoType::Z => {
+            SpriteBundle {
+                sprite: Sprite {
+                    ..default()
+                },
+                texture: asset_server.load("Yellow.png"),
+                ..default()
+            }
+        },
+        // _ => panic!("Invalid tetromino type!")
+
+    }
+}
 
 pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> SpriteBundle {
     match tetromino_type {
@@ -120,7 +201,7 @@ pub fn init_game_state() -> GameState {
         next_tetromino: get_rand_tetromino(),
         next_tetromino2: get_rand_tetromino(),
         current_position: IVec2::new(4, 18),
-        tetromino_entities: HashMap::new(),
+        tetromino_entities: HashSet::new(),
         hit_bottom_timer: 0.0,
         step_timer: 0.0,
         move_timer: 0.0
@@ -131,21 +212,21 @@ pub fn camera() -> Camera2dBundle {
     Camera2dBundle::default()
 }
 
-pub fn calculate_preview_transform(config: &Res<ConfigData>, i: i32) -> Transform {
+pub fn calculate_preview_transform(config: &Res<ConfigData>, fst: bool) -> Transform {
     let x = config.game_config.tile_size * config.game_config.scale_factor * 8.0;
-    let y = config.game_config.tile_size * config.game_config.scale_factor * (if i == 0 { 8.0 } else { 3.0 });
+    let y = config.game_config.tile_size * config.game_config.scale_factor * (if fst { 8.0 } else { 3.0 });
     Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))
         .with_translation(Vec3::new(x, y, 0.0))
 }
 
-pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, i: i32) -> impl Bundle {
+pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, fst: bool) -> impl Bundle {
     let texture_handle: Handle<Image> = asset_server.load(config.game_config.preview_img.clone());
     SpriteBundle {
         sprite: Sprite {
             ..default()
         },
         texture: texture_handle,
-        transform: calculate_preview_transform(config, i),
+        transform: calculate_preview_transform(config, fst),
         ..default()
     }
 }
@@ -167,44 +248,44 @@ pub fn main_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> 
     }
 }
 
-pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
+// pub fn main_tilemap(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
+//
+//     // println!("DEBUG: main_tilemap, 169");
+//     let texture_handle: Handle<Image> = asset_server.load(config.game_config.tiles_path.clone());
+//     let map_size = TilemapSize { x: 10, y: 20 };
+//     let tile_storage = TileStorage::empty(map_size);
+//
+//     let tile_size = TilemapTileSize { x: config.game_config.tile_size, y: config.game_config.tile_size };
+//     let grid_size = tile_size.into();
+//     let map_type = TilemapType::default();
+//     // println!("DEBUG: main_tilemap, 177");
+//     TilemapBundle {
+//         grid_size,
+//         map_type,
+//         size: map_size,
+//         storage: tile_storage,
+//         texture: TilemapTexture::Single(texture_handle),
+//         tile_size,
+//         transform: calculate_transform(&map_size, &grid_size, &map_type, config.game_config.scale_factor, 0.0),
+//         ..Default::default()
+//     }
+// }
 
-    // println!("DEBUG: main_tilemap, 169");
-    let texture_handle: Handle<Image> = asset_server.load(config.game_config.tiles_path.clone());
-    let map_size = TilemapSize { x: 10, y: 20 };
-    let tile_storage = TileStorage::empty(map_size);
 
-    let tile_size = TilemapTileSize { x: config.game_config.tile_size, y: config.game_config.tile_size };
-    let grid_size = tile_size.into();
-    let map_type = TilemapType::default();
-    // println!("DEBUG: main_tilemap, 177");
-    TilemapBundle {
-        grid_size,
-        map_type,
-        size: map_size,
-        storage: tile_storage,
-        texture: TilemapTexture::Single(texture_handle),
-        tile_size,
-        transform: calculate_transform(&map_size, &grid_size, &map_type, config.game_config.scale_factor, 0.0),
-        ..Default::default()
-    }
-}
-
-
-pub fn calculate_transform(
-    size: &TilemapSize,
-    grid_size: &TilemapGridSize,
-    map_type: &TilemapType,
-    scale_factor: f32,
-    z: f32,
-) -> Transform {
-
-    let low = TilePos::new(0, 0).center_in_world(grid_size, map_type);
-    let high = TilePos::new(size.x - 1, size.y - 1).center_in_world(grid_size, map_type);
-
-    let diff = high - low;
-
-    let x = -diff.x * scale_factor / 2.0;
-    let y = -diff.y * scale_factor / 2.0;
-    Transform::from_scale(Vec3::new(scale_factor, scale_factor, 1.0)).with_translation(Vec3::new(x, y, z))
-}
+// pub fn calculate_transform(
+//     size: &TilemapSize,
+//     grid_size: &TilemapGridSize,
+//     map_type: &TilemapType,
+//     scale_factor: f32,
+//     z: f32,
+// ) -> Transform {
+//
+//     let low = TilePos::new(0, 0).center_in_world(grid_size, map_type);
+//     let high = TilePos::new(size.x - 1, size.y - 1).center_in_world(grid_size, map_type);
+//
+//     let diff = high - low;
+//
+//     let x = -diff.x * scale_factor / 2.0;
+//     let y = -diff.y * scale_factor / 2.0;
+//     Transform::from_scale(Vec3::new(scale_factor, scale_factor, 1.0)).with_translation(Vec3::new(x, y, z))
+// }

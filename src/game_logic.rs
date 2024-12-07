@@ -317,6 +317,7 @@ pub fn clear_lines(
     for i in first_line..20 {
         if !lines_to_remove.contains(&i) {
             // swap.insert(i, idx);
+            println!("DEBUG: to swap: {}, {}", i, idx);
             swap.push((i, idx));
             idx += 1;
         }
@@ -327,26 +328,9 @@ pub fn clear_lines(
             let to_pos = TilePos{x: i, y: *y2};
             if let Some(entity) = tile_storage.get(&from_pos) {
                 println!("DEBUG: from_pos: {:?}, to_pos: {:?}", from_pos, to_pos);
-                // let Ok(mut pos) = query2.get_mut(entity) else {
-                //     panic!("DEBUG: TilePos not found in entity");
-                // };
-                // let old_pos = *pos;
-                // pos.y = *y2;
-                tile_storage.remove(&from_pos);
                 tile_storage.set(&to_pos, entity);
                 commands.entity(entity).insert(to_pos);
-                // tile_storage.remove(&from_pso);
-                // commands.entity(entity).insert(to_pos);
-                // commands.entity(entity).despawn_recursive();
-                // let tile_entity = commands
-                //     .spawn(TileBundle {
-                //         position: to_pos,
-                //         tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
-                //         texture_index: TileTextureIndex(0),
-                //         ..Default::default()
-                //     })
-                //     .id();
-                // tile_storage.set(&to_pos, entity);
+                tile_storage.remove(&from_pos);
             }
         }
     }

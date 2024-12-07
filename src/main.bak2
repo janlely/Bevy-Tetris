@@ -1,0 +1,244 @@
+#[macro_use]
+extern crate ini;
+
+use std::io::Read;
+use bevy::ecs::system::lifetimeless::SCommands;
+use bevy_ecs_tilemap::prelude::*;
+mod scene;
+mod config;
+mod tetromino;
+use bevy::prelude::*;
+use crate::scene::calculate_transform;
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(TilemapPlugin)
+        .insert_resource(config::load_config("config.ini".to_string()))
+        .insert_resource(Countdown {
+            timer1: Timer::from_seconds(3.0, TimerMode::Repeating),
+            timer2: Timer::from_seconds(3.0, TimerMode::Repeating),
+            timer3: Timer::from_seconds(3.0, TimerMode::Repeating),
+        })
+        .insert_resource(OneTime { done: false})
+        .add_systems(Startup, setup)
+        // .add_systems(Update, (update1, update2, update3).chain())
+        .add_systems(Update, update)
+        .run();
+}
+
+#[derive(Resource)]
+struct Countdown {
+    timer1: Timer,
+    timer2: Timer,
+    timer3: Timer
+}
+
+
+#[derive(Resource)]
+struct OneTime {
+    done: bool
+}
+
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    config: Res<config::ConfigData>
+) {
+    commands.spawn(Camera2dBundle::default());
+    let texture_handle: Handle<Image> = asset_server.load(config.game_config.tiles_path.clone());
+    let map_size = TilemapSize { x: 10, y: 20 };
+    let mut tile_storage = TileStorage::empty(map_size);
+
+    // println!("DEBUG: main_tilemap, 177");
+    let tilemap_entity = commands.spawn_empty().id();
+
+    let tile_pos1 = TilePos { x: 0, y: 1 };
+    let tile_entity1 = commands
+        .spawn(TileBundle {
+            position: tile_pos1,
+            tilemap_id: TilemapId(tilemap_entity),
+            texture_index: TileTextureIndex(1),
+            ..Default::default()
+        })
+        .id();
+    tile_storage.set(&tile_pos1, tile_entity1);
+
+    let tile_pos2 = TilePos { x: 0, y: 2 };
+    let tile_entity2 = commands
+        .spawn(TileBundle {
+            position: tile_pos2,
+            tilemap_id: TilemapId(tilemap_entity),
+            texture_index: TileTextureIndex(2),
+            ..Default::default()
+        })
+        .id();
+    tile_storage.set(&tile_pos2, tile_entity2);
+
+    let tile_pos3 = TilePos { x: 0, y: 3 };
+    let tile_entity3 = commands
+        .spawn(TileBundle {
+            position: tile_pos3,
+            tilemap_id: TilemapId(tilemap_entity),
+            texture_index: TileTextureIndex(3),
+            ..Default::default()
+        })
+        .id();
+    tile_storage.set(&tile_pos3, tile_entity3);
+
+    let tile_pos4 = TilePos { x: 0, y: 4 };
+    let tile_entity4 = commands
+        .spawn(TileBundle {
+            position: tile_pos4,
+            tilemap_id: TilemapId(tilemap_entity),
+            texture_index: TileTextureIndex(4),
+            ..Default::default()
+        })
+        .id();
+    tile_storage.set(&tile_pos4, tile_entity4);
+
+    for y in (0..20).rev() {
+        for x in 0..10 {
+            if tile_storage.get(&TilePos{x: x as u32, y: y as u32}).is_some() {
+                print!("*");
+            } else {
+                print!(".");
+            }
+        }
+        print!("\n")
+    }
+    print!("\n\n\n");
+
+    let tile_size = TilemapTileSize { x: config.game_config.tile_size, y: config.game_config.tile_size };
+    let grid_size = tile_size.into();
+    let map_type = TilemapType::default();
+    commands.entity(tilemap_entity).insert(
+        TilemapBundle {
+            grid_size,
+            map_type,
+            size: map_size,
+            storage: tile_storage,
+            texture: TilemapTexture::Single(texture_handle),
+            tile_size,
+            transform: scene::calculate_transform(&map_size, &grid_size, &map_type, config.game_config.scale_factor, 0.0),
+            // transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0),
+            ..Default::default()
+        });
+    // let texture_handle: Handle<Image> = asset_server.load("tiles.png");
+    //
+    // let map_size = TilemapSize { x: 32, y: 32 };
+    // let mut tile_storage = TileStorage::empty(map_size);
+    // let tilemap_entity = commands.spawn_empty().id();
+    //
+    //         let tile_pos = TilePos { x: 0, y: 0 };
+    //         let tile_entity = commands
+    //             .spawn(TileBundle {
+    //                 position: tile_pos,
+    //                 tilemap_id: TilemapId(tilemap_entity),
+    //                 ..Default::default()
+    //             })
+    //             .id();
+    //         tile_storage.set(&tile_pos, tile_entity);
+    //
+    // let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
+    // let grid_size = tile_size.into();
+    // let map_type = TilemapType::default();
+    //
+    // commands.entity(tilemap_entity).insert(
+    //     TilemapBundle {
+    //         grid_size,
+    //         map_type,
+    //         size: map_size,
+    //         storage: tile_storage,
+    //         texture: TilemapTexture::Single(texture_handle),
+    //         tile_size,
+    //         transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0),
+    //         ..Default::default()
+    //     }
+    // );
+}
+
+
+fn update(
+    mut commands: Commands,
+    mut ts_query: Query<&mut TileStorage>,
+    mut countdown: ResMut<Countdown>,
+    mut one_time: ResMut<OneTime>,
+    time: Res<Time>
+    // mut tm_query: Query<Entity,With<TileMap>>
+) {
+    if one_time.done {
+        return;
+    }
+    let mut tile_storage = ts_query.single_mut();
+    for y in 1..4 {
+        let from_pso = TilePos{x: 0, y: y};
+        let to_pos = TilePos{x: 0, y: y-1};
+        println!("DEBUG: from_pos: {:?}, to_pos: {:?}", from_pso, to_pos);
+        if let Some(entity) = tile_storage.get(&from_pso) {
+            tile_storage.remove(&from_pso);
+            tile_storage.set(&to_pos, entity);
+            commands.entity(entity).insert(to_pos);
+        }
+    }
+    one_time.done = true;
+}
+fn update1(
+    mut commands: Commands,
+    mut ts_query: Query<&mut TileStorage>,
+    mut countdown: ResMut<Countdown>,
+    time: Res<Time>
+    // mut tm_query: Query<Entity,With<TileMap>>
+) {
+
+    let mut tile_storage = ts_query.single_mut();
+    let from_pso = TilePos{x: 0, y: 1};
+    let to_pos = TilePos{x: 0, y: 0};
+    if let Some(entity) = tile_storage.get(&from_pso) {
+        if countdown.timer1.tick(time.delta()).just_finished() {
+            tile_storage.remove(&from_pso);
+            tile_storage.set(&to_pos, entity);
+            commands.entity(entity).insert(to_pos);
+        }
+    }
+}
+
+fn update2(
+    mut commands: Commands,
+    mut ts_query: Query<&mut TileStorage>,
+    mut countdown: ResMut<Countdown>,
+    time: Res<Time>
+    // mut tm_query: Query<Entity,With<TileMap>>
+) {
+
+    let mut tile_storage = ts_query.single_mut();
+    let from_pso = TilePos{x: 0, y: 2};
+    let to_pos = TilePos{x: 0, y: 1};
+    if let Some(entity) = tile_storage.get(&from_pso) {
+        if countdown.timer2.tick(time.delta()).just_finished() {
+            tile_storage.remove(&from_pso);
+            tile_storage.set(&to_pos, entity);
+            commands.entity(entity).insert(to_pos);
+        }
+    }
+}
+
+fn update3(
+    mut commands: Commands,
+    mut ts_query: Query<&mut TileStorage>,
+    mut countdown: ResMut<Countdown>,
+    time: Res<Time>
+    // mut tm_query: Query<Entity,With<TileMap>>
+) {
+
+    let mut tile_storage = ts_query.single_mut();
+    let from_pso = TilePos{x: 0, y: 3};
+    let to_pos = TilePos{x: 0, y: 2};
+    if let Some(entity) = tile_storage.get(&from_pso) {
+        if countdown.timer3.tick(time.delta()).just_finished() {
+            tile_storage.remove(&from_pso);
+            tile_storage.set(&to_pos, entity);
+            commands.entity(entity).insert(to_pos);
+        }
+    }
+}

@@ -34,7 +34,7 @@ pub fn get_rand_tetromino() -> (TetrominoType, usize) {
         2 => (TetrominoType::L, 2),
         3 => (TetrominoType::O, 3),
         4 => (TetrominoType::S, 4),
-        5 => (TetrominoType::T, 4),
+        5 => (TetrominoType::T, 5),
         6 => (TetrominoType::Z, 6),
         _ => panic!("Invalid random number!")
     }

@@ -57,11 +57,10 @@ impl Tetromino {
 
             ],
             TetrominoType::T => [
-                [IVec2::new(0,0), IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(1,1)],
-                [IVec2::new(-1,1), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
                 [IVec2::new(0,1), IVec2::new(1,0), IVec2::new(0,0), IVec2::new(-1,0)],
                 [IVec2::new(1,1), IVec2::new(0,0), IVec2::new(0,1), IVec2::new(0,2)],
-
+                [IVec2::new(0,0), IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(1,1)],
+                [IVec2::new(-1,1), IVec2::new(0,2), IVec2::new(0,1), IVec2::new(0,0)],
             ],
             TetrominoType::Z => [
                 [IVec2::new(-1,1), IVec2::new(0,1), IVec2::new(0,0), IVec2::new(1,0)],
@@ -96,6 +95,7 @@ impl Tetromino {
     }
     pub fn down_most_position(&self) -> Vec<IVec2>{
         let position = self.get_position();
+
         match self.rotate {
             0 => match self.tetromino_type {
                     TetrominoType::I => Vec::from(position),
@@ -108,7 +108,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1], position[3]],
+                        vec![position[1], position[2], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2], position[3]],
                 }
@@ -123,7 +123,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2]],
                     TetrominoType::T =>
-                        vec![position[0], position[3]],
+                        vec![position[0], position[1]],
                     TetrominoType::Z =>
                         vec![position[1], position[3]],
                 }
@@ -138,7 +138,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[1], position[2], position[3]],
+                        vec![position[0], position[1], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[1], position[3]],
                 }
@@ -153,7 +153,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1]],
+                        vec![position[0], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2]],
                 },
@@ -167,7 +167,8 @@ impl Tetromino {
         match self.rotate {
             0 =>
                 match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I =>
+                        vec![position[3]],
                     TetrominoType::O =>
                         vec![position[1], position[2]],
                     TetrominoType::J =>
@@ -177,14 +178,13 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2]],
                     TetrominoType::T =>
-                        vec![position[0], position[3]],
+                        vec![position[0], position[1]],
                     TetrominoType::Z =>
                         vec![position[1], position[3]],
                 }
             1 =>
                 match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[3]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[2], position[3]],
                     TetrominoType::J =>
@@ -194,13 +194,14 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[1], position[2], position[3]],
+                        vec![position[0], position[1], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[1], position[3]],
                 }
             2 =>
                 match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I =>
+                        vec![position[0]],
                     TetrominoType::O =>
                         vec![position[0], position[3]],
                     TetrominoType::J =>
@@ -210,14 +211,13 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1]],
+                        vec![position[0], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2]],
                 }
             3 =>
                 match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[0]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[0], position[1]],
                     TetrominoType::J =>
@@ -227,7 +227,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1], position[3]],
+                        vec![position[1], position[2], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2], position[3]],
                 },
@@ -240,7 +240,7 @@ impl Tetromino {
         match self.rotate {
             0 =>
                 match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I => vec![position[0]],
                     TetrominoType::O =>
                         vec![position[0], position[3]],
                     TetrominoType::J =>
@@ -250,14 +250,13 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1]],
+                        vec![position[0], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2]],
                 }
             1 =>
                 match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[0]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[0], position[1]],
                     TetrominoType::J =>
@@ -267,13 +266,14 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2], position[3]],
                     TetrominoType::T =>
-                        vec![position[0], position[1], position[3]],
+                        vec![position[1], position[2], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[2], position[3]],
                 }
             2 =>
                 match self.tetromino_type {
-                    TetrominoType::I => Vec::from(position),
+                    TetrominoType::I =>
+                        vec![position[3]],
                     TetrominoType::O =>
                         vec![position[1], position[2]],
                     TetrominoType::J =>
@@ -283,14 +283,13 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[2]],
                     TetrominoType::T =>
-                        vec![position[0], position[3]],
+                        vec![position[0], position[1]],
                     TetrominoType::Z =>
                         vec![position[1], position[3]],
                 }
             3 =>
                 match self.tetromino_type {
-                    TetrominoType::I =>
-                        vec![position[3]],
+                    TetrominoType::I => Vec::from(position),
                     TetrominoType::O =>
                         vec![position[2], position[3]],
                     TetrominoType::J =>
@@ -300,7 +299,7 @@ impl Tetromino {
                     TetrominoType::S =>
                         vec![position[0], position[1], position[3]],
                     TetrominoType::T =>
-                        vec![position[1], position[2], position[3]],
+                        vec![position[0], position[1], position[3]],
                     TetrominoType::Z =>
                         vec![position[0], position[1], position[3]],
                 },

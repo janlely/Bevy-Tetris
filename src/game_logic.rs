@@ -1,7 +1,10 @@
+use std::any::{Any, TypeId};
 use std::collections::{HashMap };
 use std::os::macos::raw::stat;
+use std::os::unix::process::parent_id;
 use bevy::color::Color::Srgba;
 use bevy::color::palettes::css::RED;
+use bevy::ecs::observer::TriggerTargets;
 use bevy::input::ButtonInput;
 use bevy::math::IVec2;
 use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, SpriteBundle, Time};
@@ -196,7 +199,7 @@ fn handler_key_event(
     let repeat_delay = if just_pressed {config.game_config.first_repeat_delay} else {config.game_config.repeat_delay};
     if key_detector(keys::from_str(config.keys_config.left.as_str()))
         && can_move_left(&state, &tile_storage) {
-        // println!("DEBUG: game_logic:handler_key_even, left");
+        println!("DEBUG: game_logic:handler_key_even, left");
         state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
         state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
     }
@@ -266,6 +269,8 @@ pub fn clear_lines(
     mut state: ResMut<scene::GameState>,
     mut query: Query<&mut TileStorage>,
     mut query2: Query<&mut TilePos>,
+    entity_container: Res<EntityContainer>,
+    // world: &mut World
 ) {
 
     let mut tile_storage = query.single_mut();
@@ -306,31 +311,66 @@ pub fn clear_lines(
 
     println!("DEBUG: lines_to_remove: {:?}", lines_to_remove);
     let mut first_line = lines_to_remove[0];
-    // let mut swap: Vec<(u32, u32)> = vec![];
-    let mut swap = HashMap::new();
+    let mut swap: Vec<(u32, u32)> = vec![];
+    // let mut swap = HashMap::new();
     let mut idx = first_line;
     for i in first_line..20 {
         if !lines_to_remove.contains(&i) {
-            swap.insert(i, idx);
+            // swap.insert(i, idx);
+            swap.push((i, idx));
             idx += 1;
         }
     }
-    for mut pos in query2.iter_mut() {
-        if swap.contains_key(&pos.y) {
-            let Some(entity) = tile_storage.get(&pos) else {
-                panic!("PANIC: helper::clear_lines, 275, x: {}, y: {}", pos.x, pos.y);
-            };
-            let old_pos = *pos;
-            pos.y = swap[&pos.y];
-            tile_storage.remove(&old_pos);
-            tile_storage.set(&pos, entity);
-            let before = tile_storage.get(&old_pos).is_none();
-            let after = tile_storage.get(&pos).is_none();
-            if !before || after {
-                panic!("PANIC: helper::clear_lines, 285");
+    for (y1, y2) in swap.iter() {
+        for i in 0..10 {
+            let from_pos = TilePos{x: i, y: *y1};
+            let to_pos = TilePos{x: i, y: *y2};
+            if let Some(entity) = tile_storage.get(&from_pos) {
+                println!("DEBUG: from_pos: {:?}, to_pos: {:?}", from_pos, to_pos);
+                // let Ok(mut pos) = query2.get_mut(entity) else {
+                //     panic!("DEBUG: TilePos not found in entity");
+                // };
+                // let old_pos = *pos;
+                // pos.y = *y2;
+                tile_storage.remove(&from_pos);
+                tile_storage.set(&to_pos, entity);
+                commands.entity(entity).insert(to_pos);
+                // tile_storage.remove(&from_pso);
+                // commands.entity(entity).insert(to_pos);
+                // commands.entity(entity).despawn_recursive();
+                // let tile_entity = commands
+                //     .spawn(TileBundle {
+                //         position: to_pos,
+                //         tilemap_id: TilemapId(entity_container.tilemap.unwrap()),
+                //         texture_index: TileTextureIndex(0),
+                //         ..Default::default()
+                //     })
+                //     .id();
+                // tile_storage.set(&to_pos, entity);
             }
         }
     }
+    // let mut tile_positions: Vec<_> = query2.iter_mut().collect();
+    // tile_positions.sort_by(|a, b| {
+    //     a.y.cmp(&b.y)
+    // });
+    // for mut pos in tile_positions {
+    //     if swap.contains_key(&pos.y) {
+    //         let Some(entity) = tile_storage.get(&pos) else {
+    //             panic!("PANIC: helper::clear_lines, 275, x: {}, y: {}", pos.x, pos.y);
+    //         };
+    //         let old_pos = *pos;
+    //         pos.y = swap[&pos.y];
+    //         tile_storage.remove(&old_pos);
+    //         tile_storage.set(&pos, entity);
+    //         println!("DEBUG: from: {:?}, to: {:?}", old_pos, pos);
+    //         let before = tile_storage.get(&old_pos).is_none();
+    //         let after = tile_storage.get(&pos).is_none();
+    //         if !before || after {
+    //             panic!("PANIC: helper::clear_lines, 285");
+    //         }
+    //     }
+    // }
 }
 
 
@@ -345,7 +385,7 @@ fn clear_line(
             y: line
         };
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
-            commands.entity(tile_entity).despawn();
+            commands.entity(tile_entity).despawn_recursive();
             tile_storage.remove(&tile_pos);
         } else {
             panic!("DEBUG: no enity. x: {}, y:{}", i, line);
@@ -542,7 +582,8 @@ pub fn hit_bottom(
     config: Res<config::ConfigData>,
 ) -> bool {
     let tile_storage = query.single();
-    hit_bottom2(&state, tile_storage, config)
+    // hit_bottom2(&state, tile_storage, config)
+    !can_move_down(&state, tile_storage) && state.hit_bottom_timer >= config.game_config.step_delay
 }
 
 pub fn hit_bottom2 (
@@ -642,9 +683,9 @@ pub fn print_board(
     query: Query<&TileStorage>,
     p_query: Query<&TilePos>,
 ) {
-    for pos in p_query.iter() {
-        print!("({},{}) ", pos.x, pos.y);
-    }
+    // for pos in p_query.iter() {
+    //     print!("({},{}) ", pos.x, pos.y);
+    // }
     let tile_storage = query.single();
     for y in (0..20).rev() {
         for x in 0..10 {

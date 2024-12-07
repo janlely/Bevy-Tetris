@@ -33,7 +33,6 @@ fn main() {
     }
 
     app.insert_state(game_logic::AppState::RUNNING);
-    app.insert_resource(game_logic::EntityContainer {..default()});
     app.insert_resource(config::load_config("config.ini".to_string()));
     app.insert_resource(scene::init_game_state());
     app.add_plugins(FrameTimeDiagnosticsPlugin);
@@ -47,7 +46,7 @@ fn main() {
         game_logic::draw_piece,
         (
             game_logic::clear_lines,
-            game_logic::print_board,
+            // game_logic::print_board,
             game_logic::spawn,
             game_logic::draw_piece,
         ).chain().run_if(game_logic::hit_bottom),

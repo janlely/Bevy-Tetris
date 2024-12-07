@@ -41,143 +41,27 @@ pub fn get_rand_tetromino() -> (TetrominoType, usize) {
     }
 }
 
-pub fn make_tile(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> SpriteBundle {
+pub fn make_tile(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> Sprite {
     match tetromino_type {
-        TetrominoType::I => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Blue.png"),
-                ..default()
-            }
-        },
-        TetrominoType::J => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Cyan.png"),
-                ..default()
-            }
-        },
-        TetrominoType::L => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Green.png"),
-                ..default()
-            }
-        },
-        TetrominoType::O => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Orange.png"),
-                ..default()
-            }
-        },
-        TetrominoType::S => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Purple.png"),
-                ..default()
-            }
-        },
-        TetrominoType::T => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Red.png"),
-                ..default()
-            }
-        },
-        TetrominoType::Z => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Yellow.png"),
-                ..default()
-            }
-        },
-        // _ => panic!("Invalid tetromino type!")
-
+        TetrominoType::I => Sprite::from_image(asset_server.load("Blue.png")),
+        TetrominoType::J => Sprite::from_image(asset_server.load("Cyan.png")),
+        TetrominoType::L => Sprite::from_image(asset_server.load("Green.png")),
+        TetrominoType::O => Sprite::from_image(asset_server.load("Orange.png")),
+        TetrominoType::S => Sprite::from_image(asset_server.load("Purple.png")),
+        TetrominoType::T => Sprite::from_image(asset_server.load("Red.png")),
+        TetrominoType::Z => Sprite::from_image(asset_server.load("Yellow.png"))
     }
 }
 
-pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> SpriteBundle {
+pub fn make_sprite(asset_server: &Res<AssetServer>, tetromino_type: TetrominoType) -> Sprite {
     match tetromino_type {
-        TetrominoType::I => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("I.png"),
-                ..default()
-            }
-        },
-        TetrominoType::J => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("J.png"),
-                ..default()
-            }
-        },
-        TetrominoType::L => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("L.png"),
-                ..default()
-            }
-        },
-        TetrominoType::O => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("O.png"),
-                ..default()
-            }
-        },
-        TetrominoType::S => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("S.png"),
-                ..default()
-            }
-        },
-        TetrominoType::T => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("T.png"),
-                ..default()
-            }
-        },
-        TetrominoType::Z => {
-            SpriteBundle {
-                sprite: Sprite {
-                    ..default()
-                },
-                texture: asset_server.load("Z.png"),
-                ..default()
-            }
-        },
-        // _ => panic!("Invalid tetromino type!")
-
+        TetrominoType::I => Sprite::from_image(asset_server.load("I.png")),
+        TetrominoType::J => Sprite::from_image(asset_server.load("J.png")),
+        TetrominoType::L => Sprite::from_image(asset_server.load("L.png")),
+        TetrominoType::O => Sprite::from_image(asset_server.load("O.png")),
+        TetrominoType::S => Sprite::from_image(asset_server.load("S.png")),
+        TetrominoType::T => Sprite::from_image(asset_server.load("T.png")),
+        TetrominoType::Z => Sprite::from_image(asset_server.load("Z.png"))
     }
 } 
 
@@ -197,9 +81,9 @@ pub fn init_game_state() -> GameState {
     }
 }
 
-pub fn camera() -> Camera2dBundle {
-    Camera2dBundle::default()
-}
+// pub fn camera() -> Camera2dBundle {
+//     Camera2dBundle::default()
+// }
 
 pub fn calculate_preview_transform(config: &Res<ConfigData>, fst: bool) -> Transform {
     let x = config.game_config.tile_size * config.game_config.scale_factor * 8.0;
@@ -210,14 +94,15 @@ pub fn calculate_preview_transform(config: &Res<ConfigData>, fst: bool) -> Trans
 
 pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, fst: bool) -> impl Bundle {
     let texture_handle: Handle<Image> = asset_server.load(config.game_config.preview_img.clone());
-    SpriteBundle {
-        sprite: Sprite {
-            ..default()
-        },
-        texture: texture_handle,
-        transform: calculate_preview_transform(config, fst),
-        ..default()
-    }
+    (Sprite::from_image(texture_handle), calculate_preview_transform(config, fst))
+    // SpriteBundle {
+    //     sprite: Sprite {
+    //         ..default()
+    //     },
+    //     texture: texture_handle,
+    //     transform: calculate_preview_transform(config, fst),
+    //     ..default()
+    // }
 }
 
 
@@ -225,14 +110,16 @@ pub fn preview_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>, 
 pub fn main_board(asset_server: &Res<AssetServer>, config: &Res<ConfigData>) -> impl Bundle {
 
     let texture_handle: Handle<Image> = asset_server.load(config.game_config.border_img.clone());
+    (Sprite::from_image(texture_handle),
+        Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))
+            .with_translation(Vec3::new(0.0, 0.0, 0.0)))
 
-    SpriteBundle {
-        sprite: Sprite {
-            ..default()
-        },
-        texture: texture_handle,
-        transform: Transform::from_scale(Vec3::new(config.game_config.scale_factor, config.game_config.scale_factor, 1.0))
-            .with_translation(Vec3::new(0.0, 0.0, 0.0)), 
-        ..default()
-    }
+    // SpriteBundle {
+    //     sprite: Sprite {
+    //         ..default()
+    //     },
+    //     texture: texture_handle,
+    //     transform: 
+    //     ..default()
+    // }
 }

@@ -2,7 +2,12 @@ use bevy::input::ButtonInput;
 use bevy::math::IVec2;
 use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, SpriteBundle, Time};
 use crate::{config, keys, scene, tetromino};
-use bevy::prelude::*;
+use bevy::{
+    color::palettes::css::GOLD,
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
+
 use crate::scene::{FstPreview, SndPreview};
 
 #[derive(States, Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -156,9 +161,9 @@ impl TileBoard {
 }
 
 #[derive(Resource)]
-pub struct Tetrominos([SpriteBundle; 7]);
+pub struct Tetrominos([Sprite; 7]);
 #[derive(Resource)]
-pub struct Tiles([SpriteBundle; 7]);
+pub struct Tiles([Sprite; 7]);
 
 //生成方块
 pub fn spawn(
@@ -195,7 +200,7 @@ pub fn spawn(
         .insert(SndPreview);
     //重置计时器
     state.step_timer = 0.0;
-    state.move_timer = time.elapsed_seconds_f64() + config.game_config.first_repeat_delay;
+    state.move_timer = time.elapsed_secs_f64() + config.game_config.first_repeat_delay;
 }
 
 pub fn step_down(
@@ -236,34 +241,34 @@ fn handler_key_event(
     if key_detector(keys::from_str(config.keys_config.left.as_str()))
         && can_move_left(&state, &tile_board) {
         state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.right.as_str()))
         && can_move_right(&state, &tile_board) {
         state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.down.as_str()))
         && can_move_down(&state, &tile_board) {
         state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
         state.hit_bottom_timer = 0.0;
     }
     if key_detector(keys::from_str(config.keys_config.rotate_left.as_str()))
         && can_rotate_left(&state, &tile_board) {
         state.current_tetromino.rotate_left();
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.rotate_right.as_str()))
         && can_rotate_right(&state, &tile_board) {
         state.current_tetromino.rotate_right();
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
     }
     if key_detector(keys::from_str(config.keys_config.drop.as_str())) {
         while can_move_down(&state, &tile_board) {
             state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
         }
-        state.move_timer = time.elapsed_seconds_f64() + repeat_delay;
+        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
         state.hit_bottom_timer += config.game_config.step_delay;
     }
 }
@@ -287,7 +292,7 @@ pub fn handler_key_repeat(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     next_state: ResMut<NextState<AppState>>
 ) {
-    if state.move_timer < time.elapsed_seconds_f64() {
+    if state.move_timer < time.elapsed_secs_f64() {
         handler_key_event(time, state, config, tile_board, keyboard_input, next_state, false);
     }
 }
@@ -453,6 +458,8 @@ pub fn draw_piece(
 
     }
 }
+#[derive(Component)]
+pub struct FpsText;
 
 pub fn init_scene(
     mut commands: Commands,
@@ -494,13 +501,38 @@ pub fn init_scene(
     ]);
     commands.insert_resource(tiles);
     //相机
-    commands.spawn(scene::camera());
+    commands.spawn(Camera2d);
 
     //游戏区域边框
     commands.spawn(scene::main_board(&asset_server, &config));
     //方块预览区1边框
     commands.spawn(scene::preview_board(&asset_server, &config, true));
     commands.spawn(scene::preview_board(&asset_server, &config, false));
+    //创建fps计数器
+    commands
+        .spawn((
+            // Create a Text with multiple child spans.
+            Text::new("FPS: "),
+            TextFont {
+                // This font is loaded and will be used instead of the default font.
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font_size: 42.0,
+                ..default()
+            },
+        ))
+        .with_child((
+            TextSpan::default(),
+                (
+                    // "default_font" feature is unavailable, load a font to use instead.
+                    TextFont {
+                        font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+                        font_size: 33.0,
+                        ..Default::default()
+                    },
+                    TextColor(GOLD.into()),
+                ),
+            FpsText,
+        ));
 }
 
 
@@ -553,10 +585,23 @@ pub fn update_timer(
     mut state: ResMut<scene::GameState>,
     time: Res<Time>
 ) {
-    state.hit_bottom_timer += time.delta_seconds_f64();
-    state.step_timer += time.delta_seconds_f64();
+    state.hit_bottom_timer += time.delta_secs_f64();
+    state.step_timer += time.delta_secs_f64();
 }
 
+pub fn text_update_system(
+    diagnostics: Res<DiagnosticsStore>,
+    mut query: Query<&mut TextSpan, With<FpsText>>,
+) {
+    for mut span in &mut query {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(value) = fps.smoothed() {
+                // Update the value of the second section
+                **span = format!("{value:.2}");
+            }
+        }
+    }
+}
 
 // pub fn print_board(
 //     tile_board: Res<TileBoard>,

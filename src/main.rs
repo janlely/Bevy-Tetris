@@ -7,8 +7,8 @@ mod keys;
 mod game_logic;
 
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin},
-    prelude::*,
+    // diagnostic::{FrameTimeDiagnosticsPlugin},
+    diagnostic::FrameTimeDiagnosticsPlugin, prelude::*
 };
 
 
@@ -37,6 +37,7 @@ fn main() {
     app.insert_resource(scene::init_game_state());
     app.add_plugins(FrameTimeDiagnosticsPlugin);
     app.add_systems(Startup, (game_logic::init_scene, game_logic::spawn, game_logic::draw_piece).chain());
+    app.add_systems(Update, game_logic::text_update_system);
     app.add_systems(Update, (
         game_logic::update_timer,
         game_logic::remove_piece,

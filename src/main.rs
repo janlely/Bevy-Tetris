@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate ini;
 mod tetromino;
 mod config;
 mod scene;
@@ -15,7 +13,7 @@ use bevy::{
 
 fn main() {
     let mut app = App::new();
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos" , target_os = "unknown"))]
     {
         app.add_plugins(DefaultPlugins);
     }
@@ -33,7 +31,7 @@ fn main() {
     }
 
     app.insert_state(game_logic::AppState::RUNNING);
-    app.insert_resource(config::load_config("config.ini".to_string()));
+    app.insert_resource(config::ConfigData::new());
     app.insert_resource(scene::init_game_state());
     app.add_plugins(FrameTimeDiagnosticsPlugin);
     app.add_systems(Startup, (game_logic::init_scene, game_logic::spawn, game_logic::draw_piece).chain());

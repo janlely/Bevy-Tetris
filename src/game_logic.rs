@@ -1,6 +1,6 @@
 use bevy::input::ButtonInput;
 use bevy::math::IVec2;
-use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, SpriteBundle, Time};
+use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, Time};
 use crate::{config, keys, scene, tetromino};
 use bevy::{
     color::palettes::css::GOLD,

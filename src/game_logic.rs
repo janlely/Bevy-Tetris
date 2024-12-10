@@ -509,30 +509,27 @@ pub fn init_scene(
     commands.spawn(scene::preview_board(&asset_server, &config, true));
     commands.spawn(scene::preview_board(&asset_server, &config, false));
     //创建fps计数器
-    commands
-        .spawn((
-            // Create a Text with multiple child spans.
-            Text::new("FPS: "),
-            TextFont {
-                // This font is loaded and will be used instead of the default font.
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                font_size: 42.0,
-                ..default()
-            },
-        ))
-        .with_child((
-            TextSpan::default(),
-                (
-                    // "default_font" feature is unavailable, load a font to use instead.
-                    TextFont {
-                        font: asset_server.load("fonts/FiraMono-Medium.ttf"),
-                        font_size: 33.0,
-                        ..Default::default()
-                    },
-                    TextColor(GOLD.into()),
-                ),
-            FpsText,
-        ));
+    // commands
+    //     .spawn((
+    //         Text::new("FPS: "),
+    //         TextFont {
+    //             font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+    //             font_size: 42.0,
+    //             ..default()
+    //         },
+    //     ))
+    //     .with_child((
+    //         TextSpan::default(),
+    //             (
+    //                 TextFont {
+    //                     font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+    //                     font_size: 33.0,
+    //                     ..Default::default()
+    //                 },
+    //                 TextColor(GOLD.into()),
+    //             ),
+    //         FpsText,
+    //     ));
 }
 
 

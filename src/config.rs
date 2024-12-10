@@ -1,4 +1,5 @@
-use bevy::prelude::Resource;
+use bevy::prelude::*;
+use bevy_egui::{egui, EguiContexts};
 
 
 #[derive(Debug)]
@@ -58,30 +59,21 @@ impl ConfigData {
     }
 }
 
-// pub fn load_config(path: String) -> ConfigData {
-//     let map = ini!(&path);
-//     // Proceed to use normal HashMap functions on the map:
-//     let config = ConfigData {
-//         keys_config: KeysConfig {
-//             left: map["keyboard"]["left"].clone().unwrap(),
-//             right: map["keyboard"]["right"].clone().unwrap(),
-//             down: map["keyboard"]["down"].clone().unwrap(),
-//             drop: map["keyboard"]["drop"].clone().unwrap(),
-//             rotate_left: map["keyboard"]["rotate_left"].clone().unwrap(),
-//             rotate_right: map["keyboard"]["rotate_right"].clone().unwrap(),
-//             pause: map["keyboard"]["pause"].clone().unwrap(),
-//             restart: map["keyboard"]["restart"].clone().unwrap(),
-//         },
-//         game_config: GameConfig {
-//             step_delay: map["game"]["step_delay"].clone().unwrap().parse().unwrap(),
-//             first_repeat_delay: map["game"]["first_repeat_delay"].clone().unwrap().parse().unwrap(),
-//             repeat_delay: map["game"]["repeat_delay"].clone().unwrap().parse().unwrap(),
-//             scale_factor: map["game"]["scale_factor"].clone().unwrap().parse().unwrap(),
-//             tile_size: map["game"]["tile_size"].clone().unwrap().parse().unwrap(),
-//             border_img: map["game"]["border_img"].clone().unwrap(),
-//             preview_img: map["game"]["preview_img"].clone().unwrap(),
-//         }
-//     };
-//     println!("DEBUG: config::load_config, 58, data: {:?}", config);
-//     config
-// }
+pub fn config_setting_panel(
+    mut contexts: EguiContexts,
+    mut state: ResMut<ConfigData>
+) {
+    let ctx = contexts.ctx_mut();
+    ctx.style_mut(|style| {
+        style.spacing.slider_width = 300.0;
+    });
+    egui::SidePanel::left("config_panel")
+    .default_width(400.0)
+    .show(ctx, |ui| {
+        ui.heading("Settings");
+
+        ui.add(egui::Label::new("keyboard speed"));
+        ui.add(egui::Slider::new(&mut state.game_config.repeat_delay, 0.01..=0.5));
+
+        });
+}

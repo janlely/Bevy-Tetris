@@ -200,7 +200,7 @@ pub fn spawn(
         .insert(SndPreview);
     //重置计时器
     state.step_timer = 0.0;
-    state.move_timer = time.elapsed_secs_f64() + config.game_config.first_repeat_delay;
+    // 这行代码已经不需要了，因为我们改用帧控制
 }
 
 pub fn step_down(
@@ -218,82 +218,154 @@ pub fn step_down(
     }
 }
 
-fn handler_key_event(
-    time: Res<Time>,
-    mut state: ResMut<scene::GameState>,
-    config: Res<config::ConfigData>,
-    tile_board: Res<TileBoard>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<AppState>>,
-    just_pressed: bool,
-) {
-    let key_detector: Box<dyn Fn(KeyCode) -> bool>= if just_pressed {
-        Box::new(move |x| keyboard_input.just_pressed(x))
-    } else {
-        Box::new(move |x| keyboard_input.pressed(x))
-    };
-    if just_pressed && key_detector(keys::from_str(config.keys_config.pause.as_str())) {
-        next_state.set(AppState::PAUSED);
-        return;
-    }
-
-    let repeat_delay = if just_pressed {config.game_config.first_repeat_delay} else {config.game_config.repeat_delay};
-    if key_detector(keys::from_str(config.keys_config.left.as_str()))
-        && can_move_left(&state, &tile_board) {
-        state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-    }
-    if key_detector(keys::from_str(config.keys_config.right.as_str()))
-        && can_move_right(&state, &tile_board) {
-        state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-    }
-    if key_detector(keys::from_str(config.keys_config.down.as_str()))
-        && can_move_down(&state, &tile_board) {
-        state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-        state.hit_bottom_timer = 0.0;
-    }
-    if key_detector(keys::from_str(config.keys_config.rotate_left.as_str()))
-        && can_rotate_left(&state, &tile_board) {
-        state.current_tetromino.rotate_left();
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-    }
-    if key_detector(keys::from_str(config.keys_config.rotate_right.as_str()))
-        && can_rotate_right(&state, &tile_board) {
-        state.current_tetromino.rotate_right();
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-    }
-    if key_detector(keys::from_str(config.keys_config.drop.as_str())) {
-        while can_move_down(&state, &tile_board) {
-            state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
-        }
-        state.move_timer = time.elapsed_secs_f64() + repeat_delay;
-        state.hit_bottom_timer += config.game_config.step_delay;
+fn execute_move_action(
+    state: &mut scene::GameState,
+    config: &config::ConfigData,
+    tile_board: &TileBoard,
+    action: &str,
+) -> bool {
+    match action {
+        "left" => {
+            if can_move_left(&state, &tile_board) {
+                state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
+                println!("[Frame {}] Left move executed", state.frame_counter);
+                true
+            } else { false }
+        },
+        "right" => {
+            if can_move_right(&state, &tile_board) {
+                state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
+                println!("[Frame {}] Right move executed", state.frame_counter);
+                true
+            } else { false }
+        },
+        "down" => {
+            if can_move_down(&state, &tile_board) {
+                state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
+                state.hit_bottom_timer = 0.0;
+                println!("[Frame {}] Down move executed", state.frame_counter);
+                true
+            } else { false }
+        },
+        "rotate_left" => {
+            if can_rotate_left(&state, &tile_board) {
+                state.current_tetromino.rotate_left();
+                println!("[Frame {}] Rotate left executed", state.frame_counter);
+                true
+            } else { false }
+        },
+        "rotate_right" => {
+            if can_rotate_right(&state, &tile_board) {
+                state.current_tetromino.rotate_right();
+                println!("[Frame {}] Rotate right executed", state.frame_counter);
+                true
+            } else { false }
+        },
+        "drop" => {
+            let mut moved = false;
+            while can_move_down(&state, &tile_board) {
+                state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
+                moved = true;
+            }
+            if moved {
+                state.hit_bottom_timer += config.game_config.step_delay;
+                println!("[Frame {}] Drop executed", state.frame_counter);
+            }
+            moved
+        },
+        _ => false
     }
 }
 
 pub fn handler_key_down(
-    time: Res<Time>,
-    state: ResMut<scene::GameState>,
+    mut state: ResMut<scene::GameState>,
     config: Res<config::ConfigData>,
     tile_board: Res<TileBoard>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    next_state: ResMut<NextState<AppState>>
+    mut next_state: ResMut<NextState<AppState>>
 ) {
-    handler_key_event(time, state, config, tile_board, keyboard_input, next_state, true);
+    // 处理暂停键
+    if keyboard_input.just_pressed(keys::from_str(config.keys_config.pause.as_str())) {
+        next_state.set(AppState::PAUSED);
+        return;
+    }
+
+    // 检查各种移动键的首次按下
+    let actions = [
+        ("left", config.keys_config.left.as_str()),
+        ("right", config.keys_config.right.as_str()),
+        ("down", config.keys_config.down.as_str()),
+        ("rotate_left", config.keys_config.rotate_left.as_str()),
+        ("rotate_right", config.keys_config.rotate_right.as_str()),
+        ("drop", config.keys_config.drop.as_str()),
+    ];
+
+    for (action, key_str) in actions.iter() {
+        if keyboard_input.just_pressed(keys::from_str(key_str)) {
+            println!("[Frame {}] Key '{}' pressed, starting repeat timer", state.frame_counter, action);
+            if execute_move_action(&mut *state, &*config, &*tile_board, action) {
+                // 记录按键开始帧和上次重复帧
+                state.key_press_start_frame = Some(state.frame_counter);
+                state.last_repeat_frame = state.frame_counter;
+            }
+            break; // 一次只处理一个按键
+        }
+    }
 }
 
 pub fn handler_key_repeat(
-    time: Res<Time>,
-    state: ResMut<scene::GameState>,
+    mut state: ResMut<scene::GameState>,
     config: Res<config::ConfigData>,
     tile_board: Res<TileBoard>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    next_state: ResMut<NextState<AppState>>
+    _next_state: ResMut<NextState<AppState>>
 ) {
-    if state.move_timer < time.elapsed_secs_f64() {
-        handler_key_event(time, state, config, tile_board, keyboard_input, next_state, false);
+    // 如果没有按键开始记录，直接返回
+    let Some(start_frame) = state.key_press_start_frame else {
+        return;
+    };
+
+    let current_frame = state.frame_counter;
+    let frames_since_press = current_frame - start_frame;
+
+    // 检查是否已经过了首次重复延迟
+    if frames_since_press < config.game_config.first_repeat_delay as u64 {
+        return;
+    }
+
+    // 检查是否到了重复时间
+    let frames_since_last_repeat = current_frame - state.last_repeat_frame;
+    if frames_since_last_repeat < config.game_config.repeat_delay as u64 {
+        return;
+    }
+
+    // 检查哪些键还在按下，并执行相应动作
+    let actions = [
+        ("left", config.keys_config.left.as_str()),
+        ("right", config.keys_config.right.as_str()),
+        ("down", config.keys_config.down.as_str()),
+        ("rotate_left", config.keys_config.rotate_left.as_str()),
+        ("rotate_right", config.keys_config.rotate_right.as_str()),
+        ("drop", config.keys_config.drop.as_str()),
+    ];
+
+    let mut any_key_pressed = false;
+    for (action, key_str) in actions.iter() {
+        if keyboard_input.pressed(keys::from_str(key_str)) {
+            any_key_pressed = true;
+            println!("[Frame {}] Repeat action '{}' (delay: {} frames, actual: {} frames)", 
+                current_frame, action, config.game_config.repeat_delay, frames_since_last_repeat);
+            if execute_move_action(&mut *state, &*config, &*tile_board, action) {
+                state.last_repeat_frame = current_frame;
+            }
+            break; // 一次只处理一个重复动作
+        }
+    }
+
+    // 如果没有按键按下，清除重复状态
+    if !any_key_pressed {
+        println!("[Frame {}] No keys pressed, clearing repeat state", current_frame);
+        state.key_press_start_frame = None;
     }
 }
 
@@ -584,6 +656,8 @@ pub fn update_timer(
 ) {
     state.hit_bottom_timer += time.delta_secs_f64();
     state.step_timer += time.delta_secs_f64();
+    // 更新帧计数器
+    state.frame_counter += 1;
 }
 
 pub fn text_update_system(

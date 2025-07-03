@@ -17,8 +17,8 @@ pub struct KeysConfig {
 #[derive(Debug)]
 pub struct GameConfig {
     pub step_delay: f64,
-    pub first_repeat_delay: f64,
-    pub repeat_delay: f64,
+    pub first_repeat_delay: u32,  // 改为帧数
+    pub repeat_delay: u32,        // 改为帧数
     pub scale_factor: f32,
     pub tile_size: f32,
     pub border_img: String,
@@ -48,8 +48,8 @@ impl ConfigData {
             },
             game_config: GameConfig {
                 step_delay: 0.5,
-                first_repeat_delay: 0.15,
-                repeat_delay: 0.05,
+                first_repeat_delay: 9,  // 约0.15秒@60fps
+                repeat_delay: 3,        // 约0.05秒@60fps
                 scale_factor: 0.15,
                 tile_size: 192.0,
                 border_img: "Border.png".to_string(),
@@ -72,8 +72,11 @@ pub fn config_setting_panel(
     .show(ctx, |ui| {
         ui.heading("Settings");
 
-        ui.add(egui::Label::new("keyboard speed"));
-        ui.add(egui::Slider::new(&mut state.game_config.repeat_delay, 0.01..=0.5));
+        ui.add(egui::Label::new("First repeat delay (frames)"));
+        ui.add(egui::Slider::new(&mut state.game_config.first_repeat_delay, 1..=60));
+        
+        ui.add(egui::Label::new("Repeat delay (frames)"));
+        ui.add(egui::Slider::new(&mut state.game_config.repeat_delay, 1..=60));
 
         });
 }

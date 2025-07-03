@@ -22,8 +22,12 @@ pub struct GameState {
     pub current_position: IVec2,
     pub tetromino_entities: HashSet<(u32, u32)>,
     pub step_timer: f64,
-    pub move_timer: f64,
-    pub hit_bottom_timer: f64
+    pub move_timer: f64,  // 保留用于其他时间相关功能
+    pub hit_bottom_timer: f64,
+    // 新增帧控制相关字段
+    pub frame_counter: u64,
+    pub key_press_start_frame: Option<u64>,
+    pub last_repeat_frame: u64,
 }
 
 pub fn get_rand_tetromino() -> (TetrominoType, usize) {
@@ -77,7 +81,10 @@ pub fn init_game_state() -> GameState {
         tetromino_entities: HashSet::new(),
         hit_bottom_timer: 0.0,
         step_timer: 0.0,
-        move_timer: 0.0
+        move_timer: 0.0,
+        frame_counter: 0,
+        key_press_start_frame: None,
+        last_repeat_frame: 0,
     }
 }
 

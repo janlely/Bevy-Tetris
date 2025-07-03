@@ -14,7 +14,7 @@ use bevy_egui::EguiPlugin;
 
 fn main() {
     let mut app = App::new();
-    #[cfg(any(target_os = "macos" , target_os = "unknown"))]
+    #[cfg(any(target_os = "macos" , target_os="linux", target_os = "unknown"))]
     {
         app.add_plugins(DefaultPlugins);
     }

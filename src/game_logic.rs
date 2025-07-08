@@ -3,8 +3,6 @@ use bevy::math::IVec2;
 use bevy::prelude::{AssetServer, Commands, Entity, KeyCode, Query, Res, ResMut, Resource, Time};
 use crate::{config, keys, scene, tetromino};
 use bevy::{
-    color::palettes::css::GOLD,
-    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
 
@@ -170,7 +168,7 @@ pub fn spawn(
     mut commands: Commands,
     mut state: ResMut<scene::GameState>,
     config: Res<config::ConfigData>,
-    time: Res<Time>,
+    _time: Res<Time>,
     tetrominos: Res<Tetrominos>,
     mut p1_query: Query<Entity, With<scene::FstPreview>>,
     mut p2_query: Query<Entity, With<scene::SndPreview>>,
@@ -184,6 +182,12 @@ pub fn spawn(
     //预览区2的方块提升到预览区1，预览区2生成新方块
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
+    
+    // 打印方块类型信息，便于调试
+    println!("Current: {:?}, Preview1: {:?}, Preview2: {:?}", 
+        state.current_tetromino.tetromino_type, 
+        state.next_tetromino.0, 
+        state.next_tetromino2.0);
     //删除预览区的方块精灵
     if let Ok(p1_entity) = p1_query.get_single_mut() {
         commands.entity(p1_entity).despawn();
@@ -224,18 +228,30 @@ fn execute_move_action(
     tile_board: &TileBoard,
     action: &str,
 ) -> bool {
+    // 在移动之前，先记录当前方块的位置到tetromino_entities
+    // 这样draw_piece就能知道哪些位置的方块需要被移动或删除
+    for position in state.current_tetromino.get_position().iter() {
+        let tile_pos = (
+            (position.x + state.current_position.x) as u32,
+            (position.y + state.current_position.y) as u32
+        );
+        if tile_pos.0 < 10 && tile_pos.1 < 20 {
+            if tile_board.entity_at(tile_pos.0, tile_pos.1).is_some() {
+                state.tetromino_entities.insert(tile_pos);
+            }
+        }
+    }
+    
     match action {
         "left" => {
             if can_move_left(&state, &tile_board) {
                 state.current_position = IVec2::new(state.current_position.x - 1, state.current_position.y);
-                println!("[Frame {}] Left move executed", state.frame_counter);
                 true
             } else { false }
         },
         "right" => {
             if can_move_right(&state, &tile_board) {
                 state.current_position = IVec2::new(state.current_position.x + 1, state.current_position.y);
-                println!("[Frame {}] Right move executed", state.frame_counter);
                 true
             } else { false }
         },
@@ -243,21 +259,18 @@ fn execute_move_action(
             if can_move_down(&state, &tile_board) {
                 state.current_position = IVec2::new(state.current_position.x, state.current_position.y - 1);
                 state.hit_bottom_timer = 0.0;
-                println!("[Frame {}] Down move executed", state.frame_counter);
                 true
             } else { false }
         },
         "rotate_left" => {
             if can_rotate_left(&state, &tile_board) {
                 state.current_tetromino.rotate_left();
-                println!("[Frame {}] Rotate left executed", state.frame_counter);
                 true
             } else { false }
         },
         "rotate_right" => {
             if can_rotate_right(&state, &tile_board) {
                 state.current_tetromino.rotate_right();
-                println!("[Frame {}] Rotate right executed", state.frame_counter);
                 true
             } else { false }
         },
@@ -269,7 +282,6 @@ fn execute_move_action(
             }
             if moved {
                 state.hit_bottom_timer += config.game_config.step_delay;
-                println!("[Frame {}] Drop executed", state.frame_counter);
             }
             moved
         },
@@ -282,7 +294,8 @@ pub fn handler_key_down(
     config: Res<config::ConfigData>,
     tile_board: Res<TileBoard>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<AppState>>
+    mut next_state: ResMut<NextState<AppState>>,
+    _time: Res<Time>
 ) {
     // 处理暂停键
     if keyboard_input.just_pressed(keys::from_str(config.keys_config.pause.as_str())) {
@@ -302,9 +315,8 @@ pub fn handler_key_down(
 
     for (action, key_str) in actions.iter() {
         if keyboard_input.just_pressed(keys::from_str(key_str)) {
-            println!("[Frame {}] Key '{}' pressed, starting repeat timer", state.frame_counter, action);
             if execute_move_action(&mut *state, &*config, &*tile_board, action) {
-                // 记录按键开始帧和上次重复帧
+                // 记录按键开始时间和上次重复时间
                 state.key_press_start_frame = Some(state.frame_counter);
                 state.last_repeat_frame = state.frame_counter;
             }
@@ -318,7 +330,8 @@ pub fn handler_key_repeat(
     config: Res<config::ConfigData>,
     tile_board: Res<TileBoard>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    _next_state: ResMut<NextState<AppState>>
+    _next_state: ResMut<NextState<AppState>>,
+    _time: Res<Time>
 ) {
     // 如果没有按键开始记录，直接返回
     let Some(start_frame) = state.key_press_start_frame else {
@@ -353,8 +366,6 @@ pub fn handler_key_repeat(
     for (action, key_str) in actions.iter() {
         if keyboard_input.pressed(keys::from_str(key_str)) {
             any_key_pressed = true;
-            println!("[Frame {}] Repeat action '{}' (delay: {} frames, actual: {} frames)", 
-                current_frame, action, config.game_config.repeat_delay, frames_since_last_repeat);
             if execute_move_action(&mut *state, &*config, &*tile_board, action) {
                 state.last_repeat_frame = current_frame;
             }
@@ -364,7 +375,6 @@ pub fn handler_key_repeat(
 
     // 如果没有按键按下，清除重复状态
     if !any_key_pressed {
-        println!("[Frame {}] No keys pressed, clearing repeat state", current_frame);
         state.key_press_start_frame = None;
     }
 }
@@ -376,7 +386,6 @@ pub fn clear_lines(
 ) {
 
     let Some(lowest_y) = state.current_tetromino.down_most_position().iter().map(|p| p.y + state.current_position.y).min() else {
-        println!("DEBUG: helper::clear_lines, 225, state: {:?}", state);
         panic!("should hive lowest.y");
     };
 
@@ -431,7 +440,7 @@ fn clear_line(
         if let Some(tile_entity) = tile_board.remove(i, line) {
             commands.entity(tile_entity).despawn_recursive();
         } else {
-            panic!("DEBUG: no enity. x: {}, y:{}", i, line);
+            panic!("no entity at x: {}, y: {}", i, line);
         }
     }
 }
@@ -443,7 +452,7 @@ fn is_full_line(
 ) -> bool {
     for i in 0..10 {
         if line > 19 {
-            panic!("DEBUG: helper::is_full_line, 328, x: {}, y: {}", i, line);
+            panic!("invalid line index - x: {}, y: {}", i, line);
         }
         if tile_board.entity_at(i, line).is_none() {
             return false;
@@ -457,17 +466,21 @@ pub fn remove_piece(
     mut state: ResMut<scene::GameState>,
     tile_board: Res<TileBoard>,
 ) {
-    //遍历当前方块的位置，并更新tilemap
-    for positon in state.current_tetromino.get_position().iter() {
-        let tile_pos = (
-            (positon.x + state.current_position.x) as u32,
-            (positon.y + state.current_position.y) as u32
-        );
-        if tile_pos.0 >= 10 || tile_pos.1 >= 20 {
-            continue;
-        }
-        if let Some(_) = tile_board.entity_at(tile_pos.0, tile_pos.1) {
-            state.tetromino_entities.insert((tile_pos.0, tile_pos.1));
+    // 只有在tetromino_entities为空时才记录位置
+    // 这避免了与手动移动时的位置记录冲突
+    if state.tetromino_entities.is_empty() {
+        //遍历当前方块的位置，并更新tilemap
+        for positon in state.current_tetromino.get_position().iter() {
+            let tile_pos = (
+                (positon.x + state.current_position.x) as u32,
+                (positon.y + state.current_position.y) as u32
+            );
+            if tile_pos.0 >= 10 || tile_pos.1 >= 20 {
+                continue;
+            }
+            if let Some(_) = tile_board.entity_at(tile_pos.0, tile_pos.1) {
+                state.tetromino_entities.insert((tile_pos.0, tile_pos.1));
+            }
         }
     }
 }
@@ -530,8 +543,7 @@ pub fn draw_piece(
 
     }
 }
-#[derive(Component)]
-pub struct FpsText;
+
 
 pub fn init_scene(
     mut commands: Commands,
@@ -652,27 +664,17 @@ pub fn reinit(
 
 pub fn update_timer(
     mut state: ResMut<scene::GameState>,
-    time: Res<Time>
+    time: Res<Time<Fixed>>
 ) {
-    state.hit_bottom_timer += time.delta_secs_f64();
-    state.step_timer += time.delta_secs_f64();
+    // 使用固定时间步长，确保120fps的一致性
+    let fixed_delta = time.delta_secs_f64();
+    state.hit_bottom_timer += fixed_delta;
+    state.step_timer += fixed_delta;
     // 更新帧计数器
     state.frame_counter += 1;
 }
 
-pub fn text_update_system(
-    diagnostics: Res<DiagnosticsStore>,
-    mut query: Query<&mut TextSpan, With<FpsText>>,
-) {
-    for mut span in &mut query {
-        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(value) = fps.smoothed() {
-                // Update the value of the second section
-                **span = format!("{value:.2}");
-            }
-        }
-    }
-}
+
 
 // pub fn print_board(
 //     tile_board: Res<TileBoard>,

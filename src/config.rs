@@ -48,8 +48,8 @@ impl ConfigData {
             },
             game_config: GameConfig {
                 step_delay: 0.5,
-                first_repeat_delay: 9,  // 约0.15秒@60fps
-                repeat_delay: 3,        // 约0.05秒@60fps
+                first_repeat_delay: 10,  // 约0.15秒@60fps
+                repeat_delay: 1,        // 约0.05秒@60fps
                 scale_factor: 0.15,
                 tile_size: 192.0,
                 border_img: "Border.png".to_string(),
@@ -77,6 +77,10 @@ pub fn config_setting_panel(
         
         ui.add(egui::Label::new("Repeat delay (frames)"));
         ui.add(egui::Slider::new(&mut state.game_config.repeat_delay, 1..=60));
+
+        ui.separator();
+        ui.label("Game running at 120 FPS");
+        ui.label("(Fixed update rate)");
 
         });
 }

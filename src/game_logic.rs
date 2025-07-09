@@ -183,11 +183,6 @@ pub fn spawn(
     state.next_tetromino = state.next_tetromino2;
     state.next_tetromino2 = scene::get_rand_tetromino();
     
-    // 打印方块类型信息，便于调试
-    println!("Current: {:?}, Preview1: {:?}, Preview2: {:?}", 
-        state.current_tetromino.tetromino_type, 
-        state.next_tetromino.0, 
-        state.next_tetromino2.0);
     //删除预览区的方块精灵
     if let Ok(p1_entity) = p1_query.get_single_mut() {
         commands.entity(p1_entity).despawn();

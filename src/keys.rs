@@ -1,6 +1,5 @@
 use bevy::prelude::KeyCode;
 pub fn from_str(key_str: &str) -> KeyCode {
-    // println!("DEBUG: keys::from_str, 3, {}", key_str);
     match key_str {
         "KeyA" => KeyCode::KeyA,
         "KeyB" => KeyCode::KeyB,
